@@ -1,58 +1,34 @@
 module KRR
 
-type KRR
-    λ :: Real
-    K :: Matrix
-    κpars :: Tuple = (σ = 0.1, )
+import MLKernels
+
+type krr{T}
+    λ :: T
+    X :: StridedMatrix{T}
+    α :: StridedVector{T}
+    ϕ :: MLKernels.MercerKernel{T}
 end
 
-"""
-
-"""
-function fit(::KRR, data::Matrix{Real})
-    n, d = size(data)
-
-    
-end
-
-"""
-Transform distance squared matrix to kernel matrix
-"""
-function dist_sq_2_gauss_kernel!(Dsq::Matrix, σ::Real)
-    n = size(Dsq, 1)
-    c = convert(eltype(Dsq), -1/2/σ)
-    BLAS.scal!(n^2, c, Dsq, 1)
-    @inbounds for i in eachindex(Dsq)
-        Dsq[i] = exp(Dsq[i])
+function krr{T}(X::StridedMatrix{T}, y::StridedVector{T}, λ::T,
+                ϕ::MLKernels.Kernel)
+    n, d = size(X)
+    K = MLKernels.kernelmatrix(ϕ, X)
+    for i = 1:n
+        K[i, i] += λ
     end
-    return Dsq
+
+    α = cholfact!(K) \ y
+
+    krr(λ, X, α, ϕ)
 end
 
-
-"""
-Create squared distance matrix
-
-uses ||x - y||^2 = x^2 - 2xy + y^2
-"""
-function dist_sq(data::Matrix)
-    n = size(data, 1)
-    Dsq = BLAS.A_mul_Bt(data, data)
-    sq = [Dsq[i, i] for i in 1:n]
-    cc = ones(sq)
-    BLAS.scal!(n^2, -2.0, Dsq, 1)
-    BLAS.ger!(1.0, sq, cc, Dsq)
-    BLAS.ger!(1.0, sq, cc, Dsq)
-    return Dsq
+function fit{T}(model::krr, X::StridedMatrix{T})
+    @show size(X)
+    @show size(model.X)
+    k = MLKernels.kernelmatrix(model.ϕ, X, model.X)
+    @show size(k)
+    @show size(model.α)
+    k * model.α
 end
+
 end # module KRR
-
-tmp = reshape(collect(1:9.), (3,3))
-
-cross(tmp[1:end], tmp[1:end])
-
-
-BLAS.ger!(1., collect(1:3.), [1., 1., 1.], tmp)
-BLAS.ger!(1., [1., 1., 1.], collect(1:3.), tmp)
-
-
-(tmp, tmp)
