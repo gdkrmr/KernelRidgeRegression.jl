@@ -22,25 +22,26 @@ type random_krr{T}
     λ :: T
     K :: Int
     W :: StridedMatrix{T}
-    p :: StridedVector{T}
+    α :: StridedVector{T}
+    Φ :: Function
 end
 
 # weighted sum of random kitchen sinks procedure
 function random_krr{T}(X::StridedMatrix{T}, y::StridedVector{T}, λ::T,
-                       K::Int, σ::T)
+                       K::Int, σ::T, Φ::Function = (X, W) -> exp(X * W * 1im))
     n, d = size(X)
     W = randn(d, K)/σ
-    Z = exp(X * W * 1im) # Kxd matrix
+    Z = Φ(X, W) # Kxd matrix
     Z2 = Z' * Z
     for i in 1:K
-        Z2[i, i] += λ
+        @inbounds Z2[i, i] += λ / K
     end
-    p = real(cholfact!(Z2) \ (Z' * y))
-    random_krr(λ, K, W, p)
+    α = real(cholfact(Z2) \ (Z' * y))
+    random_krr(λ, K, W, α, Φ)
 end
 
 function fit{T}(random_krr::random_krr, X::StridedMatrix{T})
-    real(exp(X * random_krr.W * 1im) * random_krr.p)
+    real(random_krr.Φ(X, random_krr.W) * random_krr.α)
 end
 
 function fast_krr{T}(X::StridedMatrix{T}, y::StridedVector{T}, λ::T,
@@ -87,7 +88,7 @@ function krr{T}(X::StridedMatrix{T}, y::StridedVector{T}, λ::T,
     for i = 1:n
         # the n is important to make things comparable between fast and normal
         # krr
-        K[i, i] += n * λ
+        @inbounds K[i, i] += n * λ
     end
 
     α = cholfact!(K) \ y
