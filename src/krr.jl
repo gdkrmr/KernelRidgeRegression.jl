@@ -26,6 +26,70 @@ type random_krr{T}
     Φ :: Function
 end
 
+type tn_krr{T}
+    λ :: T
+    X :: StridedMatrix{T}
+    α :: StridedVector{T}
+    ϕ :: MLKernels.MercerKernel{T}
+    ɛ :: T
+    max_iter :: Int
+end
+
+function fit{T}(krr::tn_krr{T}, X::StridedMatrix{T})
+    k = MLKernels.kernelmatrix(krr.ϕ, X, krr.X)
+    k * krr.α
+end
+
+
+function tn_krr{T}(X::StridedMatrix{T}, y::StridedVector{T}, λ::T,
+                   ϕ::MLKernels.Kernel{T};
+                   ɛ::T = 0.5, max_iter::Int = 200)
+    n, d = size(X)
+    K = MLKernels.kernelmatrix(ϕ, X)
+    for i = 1:n
+        # the n is important to make things comparable between fast and normal
+        # krr
+        @inbounds K[i, i] += n * λ
+    end
+
+    α = truncated_newton!(K, y, zeros(y), ɛ, max_iter)
+
+    tn_krr(λ, X, α, ϕ, ɛ, max_iter)
+end
+
+
+# the truncated newton method for matrix inversion
+# adapted from https://en.wikipedia.org/wiki/Conjugate_gradient_method
+# solves Ax = b for x, overwrites x
+function truncated_newton!{T}(A::StridedMatrix{T}, b::StridedVector{T},
+                              x::StridedVector{T}, ɛ::T, max_iter::Int)
+    r = b - A*x
+    p = deepcopy(r)
+    Ap = deepcopy(r)
+    rsold = dot(r, r)
+
+    n = length(r)
+
+    for i in 1:max_iter
+        # Ap[:] = A * p
+        A_mul_B!(Ap, A, p)
+        α = rsold / dot(p, Ap)
+        # x += α * p
+        BLAS.axpy!(α, p, x)
+        # r -= α * Ap
+        BLAS.axpy!(-α, Ap, r)
+        rsnew = dot(r, r)
+        rsnew < ɛ &&  break
+        β = rsnew / rsold
+        # p[:] = r + β * p
+        BLAS.scal!(n, β, p, 1)
+        BLAS.axpy!(1, r, p)
+        rsold = rsnew
+    end
+    return x
+end
+
+
 # weighted sum of random kitchen sinks procedure
 function random_krr{T}(X::StridedMatrix{T}, y::StridedVector{T}, λ::T,
                        K::Int, σ::T, Φ::Function = (X, W) -> exp(X * W * 1im))

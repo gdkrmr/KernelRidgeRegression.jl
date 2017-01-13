@@ -17,6 +17,9 @@ include("src/krr.jl")
 @time myfastkrr = KRR.fast_krr(  x, y, 4/5000, 10, MLKernels.GaussianKernel(100.0));
 @time yfastnew = KRR.fit(myfastkrr, xnew);
 
+@time mytnkrr = KRR.tn_krr(x, y, 4/5000, MLKernels.GaussianKernel(100.0); ɛ = 0.5, max_iter = 200);
+@time ytnnew = KRR.fit(mytnkrr, xnew);
+
 @time myrandkrr = KRR.random_krr(x, y, 4/5000, 500 , 0.01);
 @time yrandnew = KRR.fit(myrandkrr, xnew);
 
@@ -29,29 +32,36 @@ include("src/krr.jl")
 
 KRR.range(ynew - yfastnew)
 KRR.range(ynew - yrandnew)
+KRR.range(ynew - ytnnew)
 
 plot(
-    layer(x = xnew, y = yrandnew3, Geom.line, Theme(default_color = colorant"purple")),
-    layer(x = xnew, y = yrandnew,  Geom.line, Theme(default_color = colorant"red")),
-    layer(x = xnew, y = yfastnew,  Geom.line, Theme(default_color = colorant"yellow")),
+    layer(x = xnew, y = ytnnew,    Geom.line, Theme(default_color = colorant"purple")),
+    # layer(x = xnew, y = yrandnew,  Geom.line, Theme(default_color = colorant"red")),
+    # layer(x = xnew, y = yfastnew,  Geom.line, Theme(default_color = colorant"yellow")),
     layer(x = xnew, y = ynew,      Geom.line, Theme(default_color = colorant"green")),
-    layer(x = x,    y = yy,        Geom.line, Theme(default_color = colorant"blue")),
+    # layer(x = x,    y = yy,        Geom.line, Theme(default_color = colorant"blue")),
     Coord.cartesian(ymin = -1.5, ymax = 1.5)
 )
 
-
-tmp = rand(10, 10)
-y = rand(10)
+include("src/krr.jl")
+n = 100
+tmp = rand(n, n)
+y = rand(n)
 tmp1 = ( tmp' + tmp )
-for i in 1:10 tmp1[i,i] += 10 end
-tmp2 = deepcopy(tmp1)
-@time cholfact!(tmp1)
-@time tmp3 = cholfact(tmp2)
+for i in 1:n tmp1[i,i] += 10 end
 tmp1
-tmp3
+tmp2 = deepcopy(tmp1)
 
-cholfact!(tmp1) \ y
-cholfact(tmp2) \ y
+@time res1 = cholfact(tmp2) \ y
+@time res2 = tmp2 \ y;
+@time res3 = KRR.truncated_newton!(tmp2, y, randn(size(y)), 0.5, 200);
+@time res4 = KRR.truncated_newton2!(tmp2, y, randn(size(y)), 0.5, 200);
+
+res1 - res2
+res2 - res3
+res2 - res4
+
+
 
 
 (MLKernels.GaussianKernel <: MLKernels.MercerKernel)
