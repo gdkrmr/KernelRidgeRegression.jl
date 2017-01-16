@@ -23,12 +23,12 @@ include("src/krr.jl")
 @time myrandkrr = KRR.random_krr(x, y, 4/5000, 500 , 0.01);
 @time yrandnew = KRR.fit(myrandkrr, xnew);
 
-# tanh makes the whole thing anti-symetric and go through the origin
+# tanh makes the whole thing rotation-symetric and go through the origin
 @time myrandkrr2 = KRR.random_krr(x, y, 4/5000, 2000, 1.0, (X, W) -> tanh(X * W))
 @time yrandnew2 = KRR.fit(myrandkrr2, xnew);
 
 @time myrandkrr3 = KRR.random_krr(x, y, 4/5000, 2000, 1.0, (X, W) -> 1 ./ ((X * W) .^ 2 + 1))
-@time yrandnew3 = KRR.fit(myrandkrr3, xnew);
+@time yrandnew3 = KRR.fit(myrandkrr3 , xnew);
 
 KRR.range(ynew - yfastnew)
 KRR.range(ynew - yrandnew)
@@ -42,6 +42,7 @@ plot(
     # layer(x = x,    y = yy,        Geom.line, Theme(default_color = colorant"blue")),
     Coord.cartesian(ymin = -1.5, ymax = 1.5)
 )
+
 
 include("src/krr.jl")
 n = 100
