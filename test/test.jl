@@ -10,7 +10,7 @@ yy = vec(sinc.(4 .* x) .+ 0.2 .* sin.(30 .* x))
 y = yy .+ 0.1randn(5000)
 xnew = collect(-4:0.01:4)''
 
-include("src/krr.jl")
+include("src/KRR.jl")
 @time mykrr     = KRR.krr(       x, y, 4/5000,      MLKernels.GaussianKernel(100.0));
 @time ynew     = KRR.fit(mykrr, xnew);
 

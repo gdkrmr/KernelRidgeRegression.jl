@@ -1,4 +1,4 @@
-module KRR
+module KernelRidgeRegression
 
 import MLKernels
 import StatsBase
@@ -242,4 +242,4 @@ function truncated_newton!{T}(A::StridedMatrix{T}, b::StridedVector{T},
     return x
 end
 
-end # module KRR
+end # module KernelRidgeRegression
