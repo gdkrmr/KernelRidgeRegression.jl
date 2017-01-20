@@ -1,5 +1,10 @@
 module KernelRidgeRegression
 
+
+# X is dimensions in rows, observations in columns!!!!
+
+
+
 import MLKernels
 import StatsBase
 import StatsBase: fit, fitted, predict, nobs
@@ -17,7 +22,7 @@ type KRR{T <: AbstractFloat} <: AbstractKRR{T}
     ϕ :: MLKernels.MercerKernel{T}
     function KRR(λ, X, α, ϕ)
         @assert λ > zero(λ)
-        @assert size(X, 1) == length(α)
+        @assert size(X, 2) == length(α)
         new(λ, X, α, ϕ)
     end
 end
@@ -35,8 +40,10 @@ function fit{T <: AbstractFloat}(
     ::Type{KRR}, X::Matrix{T}, y::Vector{T},
     λ::T, ϕ::MLKernels.Kernel{T}
 )
-    n, d = size(X)
-    K = MLKernels.kernelmatrix(ϕ, X)
+    d, n = size(X)
+    K = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
+                                Matrix{T}(n, n),
+                                ϕ, X, true)
     for i = 1:n
         # the n is important to make things comparable between fast and normal
         # KRR
@@ -49,7 +56,9 @@ function fit{T <: AbstractFloat}(
 end
 
 function predict{T <: AbstractFloat}(KRR::KRR{T}, X::Matrix{T})
-    k = MLKernels.kernelmatrix(KRR.ϕ, X, KRR.X)
+    k = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
+                                Matrix{T}(size(X, 2), size(KRR.X, 2)),
+                                KRR.ϕ, X, KRR.X)
     k * KRR.α
 end
 
@@ -67,7 +76,7 @@ type FastKRR{T <: AbstractFloat} <: AbstractKRR{T}
         @assert n > zero(n)
         @assert length(X) == length(α)
         for i in 1:length(X)
-            @assert size(X[i], 1) == length(α[i])
+            @assert size(X[i], 2) == length(α[i])
         end
         new(λ, n, X, α, ϕ)
     end
@@ -87,9 +96,9 @@ function StatsBase.fit{T <: AbstractFloat}(
     ::Type{FastKRR}, X::Matrix{T}, y::Vector{T},
     λ::T, nblocks::Int, ϕ::MLKernels.Kernel{T}
 )
-    n, d = size(X)
-    nblocks > n^0.33 && warn("nblocks > n^1/3, above theoretical limit ($(n^(1/3)))")
-    nblocks > n^0.45 && warn("nblocks > n^0.45, above empirical limit ($(n^0.45))")
+    d, n = size(X)
+    nblocks > n^0.33 && warn("nblocks > n^1/3 = $(n^(1/3)), above theoretical limit")
+    nblocks > n^0.45 && warn("nblocks > n^0.45 = $(n^0.45), above empirical limit")
 
     XX = Vector{Matrix{T}}(nblocks)
     aa = Vector{Vector{T}}(nblocks)
@@ -103,7 +112,7 @@ function StatsBase.fit{T <: AbstractFloat}(
         b_end  += blocksizes[i]
 
         i_idxs = perm_idxs[b_start:b_end]
-        i_krr  = fit(KRR, X[i_idxs, :], y[i_idxs], λ, ϕ)
+        i_krr  = fit(KRR, X[:, i_idxs], y[i_idxs], λ, ϕ)
 
         XX[i] = i_krr.X
         aa[i] = i_krr.α
@@ -114,7 +123,7 @@ end
 fitted(obj::FastKRR) = error("fitted is not defined for $(typeof(obj))")
 
 function predict{T<:AbstractFloat}(FastKRR::FastKRR{T}, X::Matrix{T})
-    n, d = size(X)
+    d, n = size(X)
     pred = zeros(T, n)
     for i in 1:FastKRR.n
         pred += predict(KRR(FastKRR.λ, FastKRR.X[i], FastKRR.α[i], FastKRR.ϕ),  X)
@@ -128,7 +137,7 @@ type RandomKRR{T <: AbstractFloat} <: AbstractKRR{T}
     λ :: T
     K :: Int
     W :: Matrix{T}
-    α :: Vector{T}
+    α :: Vector
     Φ :: Function
 
     function RandomKRR(λ, K, W, α, Φ)
@@ -143,7 +152,7 @@ function RandomKRR{T}(
     λ :: T,
     K :: Int,
     W :: Matrix{T},
-    α :: Vector{T},
+    α :: Vector,
     Φ :: Function
 )
     RandomKRR{T}(λ, K, W, α, Φ)
@@ -151,21 +160,25 @@ end
 
 function fit{T<:AbstractFloat}(
     ::Type{RandomKRR}, X::Matrix{T}, y::Vector{T},
-    λ::T, K::Int, σ::T, Φ::Function = (X, W) -> exp(X * W * 1im)
+    λ::T, K::Int, σ::T,
+    Φ::Function = (X, W) -> exp(X' * W * 1im) / sqrt(size(W, 2))
 )
-    n, d = size(X)
+    d, n = size(X)
     W = randn(d, K)/σ
     Z = Φ(X, W) # Kxd matrix
+    # Z = hcat(Z, ones(T, size(Z, 1), 1))
     Z2 = Z' * Z
     for i in 1:K
-        @inbounds Z2[i, i] += λ / K
+        @inbounds Z2[i, i] += λ * K
     end
-    α = real(cholfact(Z2) \ (Z' * y))
+    α = cholfact(Z2) \ (Z' * y)
     RandomKRR(λ, K, W, α, Φ)
 end
 
 function predict{T <: AbstractFloat}(RandomKRR::RandomKRR, X::Matrix{T})
-    real(RandomKRR.Φ(X, RandomKRR.W) * RandomKRR.α)
+    Z = RandomKRR.Φ(X, RandomKRR.W)
+    # Z = hcat(Z, ones(T, size(Z, 1), 1))
+    real(Z * RandomKRR.α)
 end
 
 
@@ -178,7 +191,7 @@ type TruncatedNewtonKRR{T <: AbstractFloat} <: AbstractKRR{T}
     max_iter :: Int
 
     function TruncatedNewtonKRR(λ, X, α, ϕ, ɛ, max_iter)
-        @assert size(X, 1) == length(α)
+        @assert size(X, 2) == length(α)
         @assert λ > zero(T)
         @assert ɛ > zero(T)
         @assert max_iter > zero(Int)
@@ -201,8 +214,10 @@ function fit{T <: AbstractFloat}(
     ::Type{TruncatedNewtonKRR}, X::Matrix{T}, y::Vector{T},
     λ::T, ϕ::MLKernels.Kernel{T}, ɛ::T = 0.5, max_iter::Int = 200
 )
-    n, d = size(X)
-    K = MLKernels.kernelmatrix(ϕ, X)
+    d, n = size(X)
+    K = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
+                                Matrix{T}(n, n),
+                                ϕ, X, true)
     for i = 1:n
         # the n is important to make things comparable between fast and normal
         # KRR
@@ -215,7 +230,9 @@ function fit{T <: AbstractFloat}(
 end
 
 function predict{T<:AbstractFloat}(KRR::TruncatedNewtonKRR{T}, X::Matrix{T})
-    k = MLKernels.kernelmatrix(KRR.ϕ, X, KRR.X)
+    k = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
+                                Matrix{T}(size(X, 2), size(KRR.X, 2)),
+                                KRR.ϕ, X, KRR.X)
     k * KRR.α
 end
 
