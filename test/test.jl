@@ -21,11 +21,26 @@ reload("KernelRidgeRegression")
 @time yrandnew = KernelRidgeRegression.predict(myrandkrr, xnew);
 
 # tanh makes the whole thing rotation-symetric and go through the origin
-@time myrandkrr2 = KernelRidgeRegression.fit(KernelRidgeRegression.RandomKRR, x, y, 4/5000, 2000, 1.0, (X, W) -> tanh(X * W))
+@time myrandkrr2 = KernelRidgeRegression.fit(KernelRidgeRegression.RandomKRR, x, y,
+                                             4/5000, 2000, 1.0, (X, W) -> tanh(X * W))
 @time yrandnew2 = KernelRidgeRegression.predict(myrandkrr2, xnew);
 
-@time myrandkrr3 = KernelRidgeRegression.fit(KernelRidgeRegression.RandomKRR, x, y, 4/5000, 2000, 1.0, (X, W) -> 1 ./ ((X * W) .^ 2 + 1))
+@time myrandkrr3 = KernelRidgeRegression.fit(KernelRidgeRegression.RandomKRR, x, y,
+                                             4/5000, 2000, 1.0, (X, W) -> 1 ./ ((X * W) .^ 2 + 1))
 @time yrandnew3 = KernelRidgeRegression.predict(myrandkrr3 , xnew);
+@time myrandkrr4 = KernelRidgeRegression.fit(KernelRidgeRegression.RandomKRR, x, y,
+                                             4/5000, 2000, 1.0, (X, W) -> ((X * W) ./ maximum(X*W)))
+@time yrandnew4 = KernelRidgeRegression.predict(myrandkrr4 , xnew);
+@time myrandkrr5 = KernelRidgeRegression.fit(KernelRidgeRegression.RandomKRR, x, y,
+                                             4/5000, 2000, 1.0, (X, W) -> begin
+                                             z = X * W
+                                             f(x) = x > 0 ? x / (x + 1) : x / (x - 1)
+                                             for i in eachindex(z)
+                                                 z[i] = f(z[i])
+                                             end
+                                             z
+                                             end)
+@time yrandnew5 = KernelRidgeRegression.predict(myrandkrr5 , xnew);
 
 
 KernelRidgeRegression.range(ynew - yfastnew)
@@ -33,11 +48,11 @@ KernelRidgeRegression.range(ynew - yrandnew)
 KernelRidgeRegression.range(ynew - ytnnew)
 
 plot(
-    layer(x = xnew, y = ytnnew,    Geom.line, Theme(default_color = colorant"purple")),
-    layer(x = xnew, y = yrandnew,  Geom.line, Theme(default_color = colorant"red")),
-    layer(x = xnew, y = yfastnew,  Geom.line, Theme(default_color = colorant"yellow")),
+    # layer(x = xnew, y = ytnnew,    Geom.line, Theme(default_color = colorant"purple")),
+    layer(x = xnew, y = yrandnew5,  Geom.line, Theme(default_color = colorant"red")),
+    # layer(x = xnew, y = yfastnew,  Geom.line, Theme(default_color = colorant"yellow")),
     layer(x = xnew, y = ynew,      Geom.line, Theme(default_color = colorant"green")),
-    # layer(x = x,    y = yy,        Geom.line, Theme(default_color = colorant"blue")),
+    layer(x = x,    y = yy,        Geom.line, Theme(default_color = colorant"blue")),
     Coord.cartesian(ymin = -1.5, ymax = 1.5)
 )
 

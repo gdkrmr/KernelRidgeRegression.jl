@@ -2,7 +2,7 @@ module KernelRidgeRegression
 
 import MLKernels
 import StatsBase
-import StatsBase: fit, fitted, predict
+import StatsBase: fit, fitted, predict, nobs
 
 abstract AbstractKRR{T} <: StatsBase.RegressionModel
 
