@@ -1,22 +1,14 @@
 module KernelRidgeRegression
 
+export fit, fitted, predict, nobs, KRR, FastKRR,
+    RandomFourierFeatures, TruncatedNewtonKRR
 
 # X is dimensions in rows, observations in columns!!!!
-
-
 
 import MLKernels
 import Iterators
 import StatsBase
-import StatsBase: fit, fitted, predict, nobs
-
-macro message(msg)
-    return :(println(now(), ": ", $msg))
-end
-
-macro message(msg...)
-    return :(println(now(), ": ", $msg...))
-end
+import StatsBase: fit, fitted, predict, nobs, predict!
 
 abstract AbstractKRR{T} <: StatsBase.RegressionModel
 
@@ -290,62 +282,6 @@ function truncated_newton!{T}(A::Matrix{T}, b::Vector{T},
         rsold = rsnew
     end
     return x
-end
-
-function crossvalidate_parameters{T, S <: StatsBase.RegressionModel}(
-    ::Type{S}, x::Matrix{T}, y::Vector{T}, folds::Int, pars...
-)
-    combs = Iterators.product(pars...)
-
-    lossₘᵢₙ = typemax(T)
-    mₘᵢₙ    = S
-    combₘᵢₙ = Iterators.nth(combs, 1)
-
-    n     = size(x)[end]
-    xdim1 = size(x)[1:end - 1]
-    ydim1 = size(y)[1:end - 1]
-    perm_idxs    = shuffle(1:n)
-    block_sizes  = KernelRidgeRegression.make_blocks(n, folds)
-    block_ends   = cumsum(block_sizes)
-    block_starts = [1, (block_ends[1:end-1] + 1)... ]
-
-    for comb in combs
-        @message "Current:"
-        @show comb
-
-        loss = 0.0
-        m = S
-        for i in 1:folds
-            print("$i ")
-            idxsₜₑₛₜ = falses(n)
-            idxsₜₑₛₜ[block_starts[i]:block_ends[i]] = true
-            idxsₜᵣₐᵢₙ = ~idxsₜₑₛₜ
-
-            x₂ = reshape(x, (prod(xdim1), size(x)[end]))
-            y₂ = reshape(y, (prod(ydim1), size(y)[end]))
-            xₜₑₛₜ = reshape(x₂[:, idxsₜₑₛₜ], (xdim1..., block_sizes[i]))
-            yₜₑₛₜ = reshape(y₂[:, idxsₜₑₛₜ], (ydim1..., block_sizes[i]))
-            xₜᵣₐᵢₙ = reshape(x₂[:, idxsₜᵣₐᵢₙ], (xdim1..., n - block_sizes[i]))
-            yₜᵣₐᵢₙ = reshape(y₂[:, idxsₜᵣₐᵢₙ], (ydim1..., n - block_sizes[i]))
-
-            m = fit(S, xₜᵣₐᵢₙ, yₜᵣₐᵢₙ, comb...)
-            ŷ = predict(m, xₜₑₛₜ)
-            loss += mean((yₜₑₛₜ - ŷ) .^ 2)
-        end
-        loss /= folds
-
-        if loss < lossₘᵢₙ
-            lossₘᵢₙ = loss
-            mₘᵢₙ    = m
-            combₘᵢₙ = comb
-        end
-        print("\n")
-        @show loss
-    end
-    @message "Minimum:"
-    @show combₘᵢₙ
-    @show lossₘᵢₙ
-    return mₘᵢₙ
 end
 
 end # module KernelRidgeRegression
