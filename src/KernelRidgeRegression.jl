@@ -138,11 +138,11 @@ function predict{T<:AbstractFloat}(FastKRR::FastKRR{T}, X::Matrix{T})
 end
 
 
-type RandomFourierFeatures{T <: AbstractFloat} <: AbstractKRR{T}
+type RandomFourierFeatures{T <: AbstractFloat, S <: AbstractFloat} <: AbstractKRR{T}
     λ :: T
     K :: Int
     W :: Matrix{T}
-    α :: Vector
+    α :: Vector{S}
     Φ :: Function
 
     function RandomFourierFeatures(λ, K, W, α, Φ)
@@ -166,11 +166,11 @@ end
 function fit{T<:AbstractFloat}(
     ::Type{RandomFourierFeatures}, X::Matrix{T}, y::Vector{T},
     λ::T, K::Int, σ::T,
-    Φ::Function = (X, W) -> exp(X' * W * 1im) / sqrt(size(W, 2))
+    Φ::Function = (X, W) -> exp(X' * W * 1im)
 )
     d, n = size(X)
     W = randn(d, K)/σ
-    Z = Φ(X, W) / sqrt(K) # Kxd matrix
+    Z = Φ(X, W) / sqrt(K) # Kxd matrix, the normalization can probably be dropped
     Z2 = Z' * Z
     for i in 1:K
         @inbounds Z2[i, i] += λ * K
@@ -240,7 +240,86 @@ function predict{T<:AbstractFloat}(KRR::TruncatedNewtonKRR{T}, X::Matrix{T})
 end
 
 
-# utility functions 
+type NystromKRR{T <: AbstractFloat} <: AbstractKRR{T}
+    λ :: T
+    X :: Matrix{T}   # The data d × n
+    r :: Integer     # the rank, < m
+    m :: Integer     # the number of samples
+    ϕ :: MLKernels.MercerKernel{T}
+    α :: Vector{T}   # Weight vector n × 1
+    Σinv :: Vector{T}   # Standard deviations length r
+    Vt ::  Matrix{T}   # Eigenvectors
+
+    function NystromKRR{T}(λ, X, r, m, ϕ, α, E)
+        d, n = size(X)
+        @assert 0 < r
+        @assert r < m
+        @assert m == n
+        @assert λ >= zero(λ)
+        @assert r == length(α)
+        @assert r == length(Σinv)
+        @assert r == size(Vt, 2)
+        @assert m == size(Vt, 1)
+        new(λ, X, r, m, ϕ, α, Σinv, Vt)
+    end
+end
+
+function NystromKRR{T}(
+    λ :: T,
+    X :: Matrix{T},
+    r :: Integer,
+    m :: Integer,
+    ϕ :: MLKernels.MercerKernel{T}
+    α :: Vector{T},
+    Σinv :: Vector{T}
+    Vt :: Matrix{T}
+)
+    NystromKRR{T}(λ, X, r, m, ϕ, α, Σinv, Vt)
+end
+
+function fit{T <: AbstractFloat}(
+      :: Type{NystromKRR},
+    X :: Matrix{T},
+    y :: Vector{T},
+    λ :: T,
+    m :: Integer,
+    r :: Integer,
+    ϕ :: MLKernels.Kernel{T}
+)
+    d, n = size(X)
+    @assert 0 < r
+    @assert r < m
+    @assert m < n
+    @assert λ >= zero(λ)
+
+    sᵢ = StatsBase.sample(1:n, m, replace = false)
+    Xₛ = X[:, sᵢ]
+    Kb = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
+                                 Matrix{T}(m, n),
+                                 ϕ, Xₛ, X)
+
+    K = Kb[:, sᵢ]
+    @assert issymmetric(K)
+    svdfact!(K)
+
+    ord = sortperm(K.S, rev = true)[1:r]
+    Σinv = inv(Diagonal(K.S[ord]))
+    Vt = K.Vt[ord, :]
+
+    α = (Σinv + Diagonal(λ*r)) * Vt * Kb * y
+
+    return NystromKRR(λ, X, r, m, ϕ, α, Σinv, Vt)
+end
+
+function predict{T <: AbstractFloat}(KRR :: NystromKRR{T}, Xnew :: Matrix{T})
+    d, n = size(Xnew)
+    Kbnew = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
+                                    Matrix{T}(size(KRR.X, 2), n),
+                                    KRR.ϕ, KRR.X, Xnew)
+    KRR.alpha' * KRR.Σinv * KRR.Vt * Kbnew
+end
+
+# utility functions
 range(x) = minimum(x), maximum(x)
 
 function make_blocks(nobs, nblocks)
