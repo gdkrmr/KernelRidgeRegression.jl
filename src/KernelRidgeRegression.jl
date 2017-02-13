@@ -5,7 +5,8 @@ export inverse,
     FastKRR,
     RandomFourierFeatures,
     TruncatedNewtonKRR,
-    NystromKRR
+    NystromKRR,
+    fitPar
 
 
 
