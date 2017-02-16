@@ -14,6 +14,7 @@ end
 # the truncated newton method for matrix inversion
 # adapted from https://en.wikipedia.org/wiki/Conjugate_gradient_method
 # solves Ax = b for x, overwrites x
+# stops if the error is < ɛ or after reaching max_iter
 function truncated_newton!{T}(A::Matrix{T}, b::Vector{T},
                               x::Vector{T}, ɛ::T, max_iter::Int)
     r = b - A*x

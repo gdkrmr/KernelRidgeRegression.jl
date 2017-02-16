@@ -19,9 +19,7 @@ import StatsBase: fit, fitted, predict, nobs, predict!, RegressionModel
 
 abstract AbstractKRR{T} <: RegressionModel
 
-function fitted(KRR::AbstractKRR)
-    predict(KRR, KRR.X)
-end
+StatsBase.fitted(KRR::AbstractKRR) = predict(KRR, KRR.X)
 
 include("krr.jl")
 include("util.jl")

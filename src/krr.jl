@@ -22,7 +22,7 @@ function KRR{T <: AbstractFloat}(
     KRR{T}(λ, X, α, ϕ)
 end
 
-function fit{T <: AbstractFloat}(
+function StatsBase.fit{T <: AbstractFloat}(
       :: Type{KRR},
     X :: Matrix{T},
     y :: Vector{T},
@@ -44,7 +44,7 @@ function fit{T <: AbstractFloat}(
     KRR(λ, X, α, ϕ)
 end
 
-function predict{T <: AbstractFloat}(KRR::KRR{T}, X::Matrix{T})
+function StatsBase.predict{T <: AbstractFloat}(KRR::KRR{T}, X::Matrix{T})
     k = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
                                 Matrix{T}(size(X, 2), size(KRR.X, 2)),
                                 KRR.ϕ, X, KRR.X)
@@ -81,7 +81,7 @@ function FastKRR{T <: AbstractFloat}(
     FastKRR{T}(λ, m, X, α, ϕ)
 end
 
-function fit{T <: AbstractFloat}(
+function StatsBase.fit{T <: AbstractFloat}(
       :: Type{FastKRR},
     X :: Matrix{T},
     y :: Vector{T},
@@ -151,14 +151,14 @@ function fitPar{T <: AbstractFloat}(
     FastKRR(λ, m, XX, aa, ϕ)
 end
 
-fitted(obj::FastKRR) = error("fitted is not defined for $(typeof(obj))")
+StatsBase.fitted(obj::FastKRR) = error("fitted is not defined for $(typeof(obj))")
 
-function predict{T<:AbstractFloat}(FastKRR::FastKRR{T}, X::Matrix{T})
+function StatsBase.predict{T<:AbstractFloat}(FastKRR::FastKRR{T}, X::Matrix{T})
     d, n = size(X)
     pred = zeros(T, n)
     # predᵢ = zeros(T, n)
     for i in 1:FastKRR.m
-        pred += predict(KRR(FastKRR.λ, FastKRR.X[i], FastKRR.α[i], FastKRR.ϕ),  X)
+        pred += StatsBase.predict(KRR(FastKRR.λ, FastKRR.X[i], FastKRR.α[i], FastKRR.ϕ),  X)
         # TODO: need a predict! function !!
         # predict!(KRR(FastKRR.λ, FastKRR.X[i], FastKRR.α[i], FastKRR.ϕ), predᵢ,  X)
         # BLAS.axpy!(1.0, predᵢ, pred)
@@ -193,7 +193,7 @@ function RandomFourierFeatures{T <: AbstractFloat, S <: Number}(
     RandomFourierFeatures{T, S}(λ, K, W, α, ϕ)
 end
 
-function fit{T<:AbstractFloat}(
+function StatsBase.fit{T<:AbstractFloat}(
       :: Type{RandomFourierFeatures},
     X :: Matrix{T},
     y :: Vector{T},
@@ -213,7 +213,7 @@ function fit{T<:AbstractFloat}(
     RandomFourierFeatures(λ, K, W, α, ϕ)
 end
 
-function predict{T <: AbstractFloat}(RFF::RandomFourierFeatures, X::Matrix{T})
+function StatsBase.predict{T <: AbstractFloat}(RFF::RandomFourierFeatures, X::Matrix{T})
     Z = RFF.ϕ(X, RFF.W) / sqrt(RFF.K)
     real(Z * RFF.α)
 end
@@ -247,7 +247,7 @@ function TruncatedNewtonKRR{T}(
     TruncatedNewtonKRR{T}(λ, X, α, ϕ, ɛ, max_iter)
 end
 
-function fit{T <: AbstractFloat}(
+function StatsBase.fit{T <: AbstractFloat}(
     ::Type{TruncatedNewtonKRR}, X::Matrix{T}, y::Vector{T},
     λ::T, ϕ::MLKernels.Kernel{T}, ɛ::T = 0.5, max_iter::Int = 200
 )
@@ -266,7 +266,7 @@ function fit{T <: AbstractFloat}(
     TruncatedNewtonKRR(λ, X, α, ϕ, ɛ, max_iter)
 end
 
-function predict{T<:AbstractFloat}(KRR::TruncatedNewtonKRR{T}, X::Matrix{T})
+function StatsBase.predict{T<:AbstractFloat}(KRR::TruncatedNewtonKRR{T}, X::Matrix{T})
     k = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
                                 Matrix{T}(size(X, 2), size(KRR.X, 2)),
                                 KRR.ϕ, X, KRR.X)
@@ -311,7 +311,7 @@ function NystromKRR{T}(
     NystromKRR{T}(λ, X, r, m, ϕ, α, Σinv, Vt)
 end
 
-function fit{T <: AbstractFloat}(
+function StatsBase.fit{T <: AbstractFloat}(
       :: Type{NystromKRR},
     X :: Matrix{T},
     y :: Vector{T},
@@ -344,7 +344,7 @@ function fit{T <: AbstractFloat}(
     return NystromKRR(λ, X, r, m, ϕ, α, Σinv, Vt)
 end
 
-function predict{T <: AbstractFloat}(KRR :: NystromKRR{T}, Xnew :: Matrix{T})
+function StatsBase.predict{T <: AbstractFloat}(KRR :: NystromKRR{T}, Xnew :: Matrix{T})
     d, n = size(Xnew)
     Kbnew = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
                                     Matrix{T}(size(KRR.X, 2), n),
