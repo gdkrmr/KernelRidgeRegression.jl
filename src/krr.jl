@@ -98,8 +98,8 @@ function FastKRR{T <: AbstractFloat}(krrs :: Union{Vector{KRR{T}}, Tuple{KRR{T}}
 
     if m > 1
         for i in 2:m
-            ((krrs[i].ϕ == ϕ) ||
-             (krrs[i].λ == λ)) &&
+            ((krrs[i].ϕ != ϕ) ||
+             (krrs[i].λ != λ)) &&
              error("all kernel functions and λs must be the same")
         end
     end
