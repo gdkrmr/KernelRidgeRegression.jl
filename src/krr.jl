@@ -6,6 +6,7 @@ type KRR{T <: AbstractFloat} <: AbstractKRR{T}
     X :: Matrix{T}
     α :: Vector{T}
     ϕ :: MLKernels.MercerKernel{T}
+
     function KRR(λ, X, α, ϕ)
         @assert λ > zero(λ)
         @assert size(X, 2) == length(α)
@@ -64,9 +65,15 @@ type FastKRR{T <: AbstractFloat} <: AbstractKRR{T}
         @assert λ > zero(λ)
         @assert m > zero(m)
         @assert length(X) == length(α)
+        nₘᵢₙ = Inf
+        nₘₐₓ = 0
         for i in 1:length(X)
-            @assert size(X[i], 2) == length(α[i])
+            n = size(X[i], 2)
+            @assert n == length(α[i])
+            (nₘᵢₙ > n) && (nₘᵢₙ = n)
+            (nₘₐₓ < n) && (nₘₐₓ = n)
         end
+        (nₘₐₓ - nₘᵢₙ) > 1 && warn("number of observations per block should not differ by more than one")
         new(λ, m, X, α, ϕ)
     end
 end
@@ -80,6 +87,31 @@ function FastKRR{T <: AbstractFloat}(
 )
     FastKRR{T}(λ, m, X, α, ϕ)
 end
+
+function FastKRR{T <: AbstractFloat}(krrs :: Union{Vector{KRR}, Tuple{KRR}})
+    m = length(krrs)
+
+    λ = krrs[1].λ
+    X = map((i) -> krrs[i].X, 1:m)
+    α = map((i) -> krrs[i].α, 1:m)
+    ϕ = krrs[1].ϕ
+
+    if m > 1
+        for i in 2:m
+            ((krrs[i].ϕ == ϕ) ||
+             (krrs[i].λ == λ)) &&
+             error("all kernel functions and λs must be the same")
+        end
+    end
+
+    FastKRR{T}(λ, m, X, α, ϕ)
+end
+
+# equality hack for MLKernels
+import Base.==
+==(x::MLKernels.Kernel, y::MLKernels.Kernel) = error("not implemented")
+==(x::MLKernels.HyperParameters.HyperParameter, y::MLKernels.HyperParameters.HyperParameter) = x.value == y.value
+==(x::MLKernels.GaussianKernel, y::MLKernels.GaussianKernel) = x.alpha == y.alpha
 
 function StatsBase.fit{T <: AbstractFloat}(
       :: Type{FastKRR},
@@ -145,8 +177,8 @@ function fitPar{T <: AbstractFloat}(
         λ, ϕ
     ), 1:m)
 
-    XX = Matrix{T}[krrs[i].X for i in 1:m]
-    aa = Vector{T}[krrs[i].α for i in 1:m]
+    XX = map((i) -> krrs[i].X, 1:m)
+    aa = map((i) -> krrs[i].α, 1:m)
 
     FastKRR(λ, m, XX, aa, ϕ)
 end
