@@ -88,7 +88,7 @@ function FastKRR{T <: AbstractFloat}(
     FastKRR{T}(λ, m, X, α, ϕ)
 end
 
-function FastKRR{T <: AbstractFloat}(krrs :: Union{Vector{KRR}, Tuple{KRR}})
+function FastKRR{T <: AbstractFloat}(krrs :: Union{Vector{KRR{T}}, Tuple{KRR{T}}})
     m = length(krrs)
 
     λ = krrs[1].λ
