@@ -45,14 +45,53 @@ function StatsBase.fit{T <: AbstractFloat}(
     KRR(λ, X, α, ϕ)
 end
 
-function StatsBase.predict{T <: AbstractFloat}(KRR::KRR{T}, X::Matrix{T})
-    k = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
-                                Matrix{T}(size(X, 2), size(KRR.X, 2)),
-                                KRR.ϕ, X, KRR.X)
-    k * KRR.α
+
+
+function StatsBase.predict!{T <: AbstractFloat}(KRR::KRR{T}, X::Matrix{T}, y::Vector{T}, K::Matrix{T})
+    n, n_new = (size(KRR.X, 2), size(X, 2))
+    @assert (n_new, n) == size(K)
+    @assert length(y) == n_new
+
+    MLKernels.kernelmatrix!(
+        MLKernels.ColumnMajor(),
+        K, KRR.ϕ, X, KRR.X
+    )
+    LinAlg.BLAS.gemv!('N', one(T), K, KRR.α, zero(T), y)
+    return y
 end
 
+function StatsBase.predict!{T <: AbstractFloat}(KRR::KRR{T}, X::Matrix{T}, y::Vector{T})
+    StatsBase.predict!(
+        KRR, X, y, MLKernels.kernelmatrix!(
+            MLKernels.ColumnMajor(),
+            Matrix{T}(size(X, 2), size(KRR.X, 2)),
+            KRR.ϕ, X, KRR.X
+    ))
+end
 
+function StatsBase.predict{T <: AbstractFloat}(KRR::KRR{T}, X::Matrix{T})
+    StatsBase.predict!(KRR, X, Vector{T}(size(X, 2)))
+end
+
+# predict the KRR with the data in X and add the result to y, used to speedup
+# predict(fast_krr::FastKRR)
+function predict_and_add!{T <: AbstractFloat}(
+    KRR :: KRR{T},
+    X   :: Matrix{T},
+    y   :: Vector{T},
+    K   :: Matrix{T}
+)
+    n, n_new = (size(KRR.X, 2), size(X, 2))
+    @assert (n_new, n) == size(K)
+    @assert length(y) == n_new
+
+    MLKernels.kernelmatrix!(
+        MLKernels.ColumnMajor(),
+        K, KRR.ϕ, X, KRR.X
+    )
+    LinAlg.BLAS.gemv!('N', one(T), K, KRR.α, one(T), y)
+    return y
+end
 
 type FastKRR{T <: AbstractFloat} <: AbstractKRR{T}
     λ :: T
@@ -185,18 +224,30 @@ end
 
 StatsBase.fitted(obj::FastKRR) = error("fitted is not defined for $(typeof(obj))")
 
-function StatsBase.predict{T<:AbstractFloat}(FastKRR::FastKRR{T}, X::Matrix{T})
+function StatsBase.predict{T <: AbstractFloat}(fast_krr::FastKRR{T}, X::Matrix{T})
+    @assert fast_krr.m > 0
     d, n = size(X)
-    pred = zeros(T, n)
-    # predᵢ = zeros(T, n)
-    for i in 1:FastKRR.m
-        pred += StatsBase.predict(KRR(FastKRR.λ, FastKRR.X[i], FastKRR.α[i], FastKRR.ϕ),  X)
-        # TODO: need a predict! function !!
-        # predict!(KRR(FastKRR.λ, FastKRR.X[i], FastKRR.α[i], FastKRR.ϕ), predᵢ,  X)
-        # BLAS.axpy!(1.0, predᵢ, pred)
+    y = zeros(T, n)
+    K = Matrix{T}(n, size(fast_krr.X[1], 2))
+    for i in 1:fast_krr.m
+
+        # The KRR.X[i] may be of different lengths
+        l = (n * size(fast_krr.X[i], 2))
+        if length(K) != l
+            resize!(K, l)
+        end
+
+        predict_and_add!(
+            KRR(fast_krr.λ, fast_krr.X[i], fast_krr.α[i], fast_krr.ϕ),
+            X, y, K
+        )
     end
-    pred /= FastKRR.m
-    pred
+
+    for i in 1:n
+        @inbounds y[i] = y[i] / fast_krr.m
+    end
+
+    return y
 end
 
 

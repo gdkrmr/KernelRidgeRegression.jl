@@ -9,24 +9,24 @@ xnew = collect(-2.5π:0.01:2.5π)'
 
 reload("KernelRidgeRegression")
 
-@time mykrr = KernelRidgeRegression.fit(KernelRidgeRegression.KRR, x, y, 1e-3/5000, MLKernels.GaussianKernel(1.0))
-@time ynew = KernelRidgeRegression.predict(mykrr, xnew)
+@time mykrr = KernelRidgeRegression.fit(KernelRidgeRegression.KRR, x, y, 1e-3/5000, MLKernels.GaussianKernel(1.0));
+@time ynew = KernelRidgeRegression.predict(mykrr, xnew);
 
-@time mynystkrr = KernelRidgeRegression.fit(KernelRidgeRegression.NystromKRR, x, y, 1e-3/5000, 100, 100, MLKernels.GaussianKernel(100.0))
-@time ynystnew = KernelRidgeRegression.predict(mykrr, xnew)
+@time mynystkrr = KernelRidgeRegression.fit(KernelRidgeRegression.NystromKRR, x, y, 1e-3/5000, 100, 100, MLKernels.GaussianKernel(100.0));
+@time ynystnew = KernelRidgeRegression.predict(mykrr, xnew);
 
-@time myfastkrr = KernelRidgeRegression.fit(KernelRidgeRegression.FastKRR, x, y, 4/5000, 10, MLKernels.GaussianKernel(100.0))
-@time yfastnew = KernelRidgeRegression.predict(myfastkrr, xnew)
+@time myfastkrr = KernelRidgeRegression.fit(KernelRidgeRegression.FastKRR, x, y, 4/5000, 10, MLKernels.GaussianKernel(100.0));
+@time yfastnew = KernelRidgeRegression.predict(myfastkrr, xnew);
 
-@time mytnkrr = KernelRidgeRegression.fit(KernelRidgeRegression.TruncatedNewtonKRR, x, y, 4/5000, MLKernels.GaussianKernel(100.0), 0.5, 200)
-@time ytnnew = KernelRidgeRegression.predict(mytnkrr, xnew)
+@time mytnkrr = KernelRidgeRegression.fit(KernelRidgeRegression.TruncatedNewtonKRR, x, y, 4/5000, MLKernels.GaussianKernel(100.0), 0.5, 200);
+@time ytnnew = KernelRidgeRegression.predict(mytnkrr, xnew);
 
-@time myrandkrr = KernelRidgeRegression.fit(KernelRidgeRegression.RandomFourierFeatures, x, y, 1e-3/5000, 100 , 1.0)
-@time yrandnew = KernelRidgeRegression.predict(myrandkrr, xnew)
+@time myrandkrr = KernelRidgeRegression.fit(KernelRidgeRegression.RandomFourierFeatures, x, y, 1e-3/5000, 100 , 1.0);
+@time yrandnew = KernelRidgeRegression.predict(myrandkrr, xnew);
 
 # tanh makes the whole thing rotation-symetric and go through the origin
-@time myrandkrr2 = KernelRidgeRegression.fit(KernelRidgeRegression.RandomKRR, x, y,
-                                             4/5000, 2000, 1.0, (X, W) -> tanh(X' * W))
+@time myrandkrr2 = KernelRidgeRegression.fit(KernelRidgeRegression.RandomKRR, x, y,;
+                                             4/5000, 2000, 1.0, (X, W) -> tanh(X' * W));
 @time yrandnew2 = KernelRidgeRegression.predict(myrandkrr2, xnew);
 
 @time myrandkrr3 = KernelRidgeRegression.fit(KernelRidgeRegression.RandomKRR, x, y,
@@ -52,15 +52,15 @@ KernelRidgeRegression.range(ynew - yrandnew)
 KernelRidgeRegression.range(ynew - ytnnew)
 
 plot(
-    layer(x = xnew, y = ynystnew, Geom.line, Theme(default_color = colorant"red")),
+    layer(x = xnew, y = yfastnew,  Geom.line, Theme(default_color = colorant"yellow")),
+    # layer(x = xnew, y = ynystnew, Geom.line, Theme(default_color = colorant"red")),
     # layer(x = xnew, y = ytnnew,    Geom.line, Theme(default_color = colorant"purple")),
-    layer(x = xnew, y = yrandnew,  Geom.line, Theme(default_color = colorant"purple")),
+    # layer(x = xnew, y = yrandnew,  Geom.line, Theme(default_color = colorant"purple")),
     # layer(x = xnew, y = yrandnew2,  Geom.line, Theme(default_color = colorant"yellow")),
-    # layer(x = xnew, y = yfastnew,  Geom.line, Theme(default_color = colorant"yellow")),
-    layer(x = xnew, y = ynew,      Geom.line, Theme(default_color = colorant"green")),
+    # layer(x = xnew, y = ynew,      Geom.line, Theme(default_color = colorant"green")),
     layer(x = x,    y = y,        Geom.line, Theme(default_color = colorant"blue")),
     Coord.cartesian(ymin = -1.5, ymax = 1.5),
-    Guide.manual_color_key("", ["Nystrom", "RFF", "KRR", "Data"], [colorant"red", colorant"purple", colorant"green", colorant"blue"])
+    Guide.manual_color_key("", ["Nystrom", "Fast", "KRR", "Data"], [colorant"red", colorant"purple", colorant"green", colorant"blue"])
 )
 
 
