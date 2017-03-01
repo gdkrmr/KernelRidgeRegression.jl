@@ -15,7 +15,7 @@ reload("KernelRidgeRegression")
 @time mynystkrr = KernelRidgeRegression.fit(KernelRidgeRegression.NystromKRR, x, y, 1e-3/5000, 100, 100, MLKernels.GaussianKernel(100.0));
 @time ynystnew = KernelRidgeRegression.predict(mykrr, xnew);
 
-@time myfastkrr = KernelRidgeRegression.fit(KernelRidgeRegression.FastKRR, x, y, 4/5000, 10, MLKernels.GaussianKernel(100.0));
+@time myfastkrr = KernelRidgeRegression.fit(KernelRidgeRegression.FastKRR, x, y, 4/5000, 11, MLKernels.GaussianKernel(100.0));
 @time yfastnew = KernelRidgeRegression.predict(myfastkrr, xnew);
 
 @time mytnkrr = KernelRidgeRegression.fit(KernelRidgeRegression.TruncatedNewtonKRR, x, y, 4/5000, MLKernels.GaussianKernel(100.0), 0.5, 200);

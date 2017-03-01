@@ -232,9 +232,8 @@ function StatsBase.predict{T <: AbstractFloat}(fast_krr::FastKRR{T}, X::Matrix{T
     for i in 1:fast_krr.m
 
         # The KRR.X[i] may be of different lengths
-        l = (n * size(fast_krr.X[i], 2))
-        if length(K) != l
-            resize!(K, l)
+        if size(K, 2) != size(fast_krr.X[i], 2)
+            K = Matrix{T}(n, size(fast_krr.X[i], 2))
         end
 
         predict_and_add!(
