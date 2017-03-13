@@ -47,7 +47,12 @@ end
 
 
 
-function StatsBase.predict!{T <: AbstractFloat}(KRR::KRR{T}, X::Matrix{T}, y::Vector{T}, K::Matrix{T})
+function StatsBase.predict!{T <: AbstractFloat}(
+    KRR :: KRR{T},
+    X   :: Matrix{T},
+    y   :: Vector{T},
+    K   :: Matrix{T}
+)
     n, n_new = (size(KRR.X, 2), size(X, 2))
     @assert (n_new, n) == size(K)
     @assert length(y) == n_new
@@ -112,7 +117,9 @@ type FastKRR{T <: AbstractFloat} <: AbstractKRR{T}
             (nₘᵢₙ > n) && (nₘᵢₙ = n)
             (nₘₐₓ < n) && (nₘₐₓ = n)
         end
-        (nₘₐₓ - nₘᵢₙ) > 1 && warn("number of observations per block should not differ by more than one")
+        (nₘₐₓ - nₘᵢₙ) > 1 && warn(
+            "number of observations per block should not differ by more than one"
+        )
         new(λ, m, X, α, ϕ)
     end
 end
@@ -161,7 +168,8 @@ function StatsBase.fit{T <: AbstractFloat}(
     ϕ :: MLKernels.Kernel{T}
 )
     d, n = size(X)
-    # Those are the limits for polynomial kernels, the gaussian kernel needs a little bit less blocks
+    # Those are the limits for polynomial kernels,
+    # the gaussian kernel needs a little bit less blocks
     m > n^0.33 && warn("m > n^1/3 = $(n^(1/3)), above theoretical limit")
     m > n^0.45 && warn("m > n^0.45 = $(n^0.45), above empirical limit")
 
@@ -171,7 +179,7 @@ function StatsBase.fit{T <: AbstractFloat}(
     perm_idxs  = shuffle(1:n)
     blocksizes = make_blocks(n, m)
 
-    b_end   = 0
+    b_end = 0
     for i in 1:m
         b_start = b_end + 1
         b_end  += blocksizes[i]
@@ -200,7 +208,8 @@ function fitPar{T <: AbstractFloat}(
     m     :: Int,
     ϕ     :: MLKernels.Kernel{T}
 )
-    # Those are the limits for polynomial kernels, the gaussian kernel needs a little bit less blocks
+    # Those are the limits for polynomial kernels,
+    # the gaussian kernel needs a little bit less blocks
     m > n^0.33 && warn("m > n^1/3 = $(n^(1/3)), above theoretical limit")
     m > n^0.45 && warn("m > n^0.45 = $(n^0.45), above empirical limit")
 
@@ -357,14 +366,14 @@ end
 
 
 type NystromKRR{T <: AbstractFloat} <: AbstractKRR{T}
-    λ :: T
-    X :: Matrix{T}    # The data d × n
-    r :: Integer      # the rank, <= m
-    m :: Integer      # the number of samples
-    ϕ :: MLKernels.MercerKernel{T}
-    α :: Vector{T}    # Weight vector n × 1
-    Σinv :: Vector{T} # Standard deviations length r
-    Vt ::  Matrix{T}  # Eigenvectors
+    λ    :: T
+    X    :: Matrix{T}  # The data d × n
+    r    :: Integer    # the rank, <= m
+    m    :: Integer    # the number of samples
+    ϕ    :: MLKernels.MercerKernel{T}
+    α    :: Vector{T}  # Weight vector n × 1
+    Σinv :: Vector{T}  # Standard deviations length r
+    Vt   ::  Matrix{T} # Eigenvectors
 
     function NystromKRR(λ, X, r, m, ϕ, α, Σinv, Vt)
         d, n = size(X)
