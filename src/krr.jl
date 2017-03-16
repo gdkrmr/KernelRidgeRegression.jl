@@ -364,8 +364,64 @@ function StatsBase.predict{T<:AbstractFloat}(KRR::TruncatedNewtonKRR{T}, X::Matr
     k * KRR.α
 end
 
-
 type NystromKRR{T <: AbstractFloat} <: AbstractKRR{T}
+    λ  :: T
+    Xm :: Matrix{T}
+    m  :: Integer
+    ϕ  :: MLKernels.MercerKernel{T}
+    α  :: Vector{T}
+
+    function NystromKRR(λ, Xm, m, ϕ, α)
+        @assert m == size(Xm, 2)
+        @assert λ >= zero(λ)
+        @assert length(α) == m
+        new(λ, Xm, m, ϕ, α)
+    end
+end
+
+function NystromKRR{T <: AbstractFloat}(
+    λ  :: T,
+    Xm :: Matrix{T},
+    m  :: Integer,
+    ϕ  :: MLKernels.MercerKernel{T},
+    α  :: Vector{T}
+)
+    NystromKRR{T}(λ, Xm, m, ϕ, α)
+end
+
+function StatsBase.fit{T <: AbstractFloat}(
+      :: Type{NystromKRR},
+    X :: Matrix{T},
+    y :: Vector{T},
+    λ :: T,
+    m :: Integer,
+    ϕ :: MLKernels.MercerKernel{T}
+)
+    d, n = size(X)
+    @assert m < n
+    m_idx = StatsBase.sample(1:n, m, replace = false)
+    Xm = X[:, m_idx]
+    Knm = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
+                                  Matrix{T}(m, n),
+                                  ϕ, Xm, X)
+    Kmm = Knm * Knm'
+    for i in 1:m
+        Kmm[i, i] += m * λ
+    end
+
+    α = cholfact(Kmm) \ (Knm * y)
+    NystromKRR(λ, Xm, m, ϕ, α)
+end
+
+function StatsBase.predict{T <: AbstractFloat}(KRR :: NystromKRR{T}, X :: Matrix{T})
+    Knm = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
+                                  Matrix{T}(size(X, 2), size(KRR.Xm, 2)),
+                                  KRR.ϕ, X, KRR.Xm)
+    Knm * KRR.α
+end
+
+# An implementation error which nonetheless works
+type SomethingKRR{T <: AbstractFloat} <: AbstractKRR{T}
     λ    :: T
     X    :: Matrix{T}  # The data d × n
     r    :: Integer    # the rank, <= m
@@ -375,7 +431,7 @@ type NystromKRR{T <: AbstractFloat} <: AbstractKRR{T}
     Σinv :: Vector{T}  # Standard deviations length r
     Vt   ::  Matrix{T} # Eigenvectors
 
-    function NystromKRR(λ, X, r, m, ϕ, α, Σinv, Vt)
+    function SomethingKRR(λ, X, r, m, ϕ, α, Σinv, Vt)
         d, n = size(X)
         @assert 0 <  r
         @assert r <= m
@@ -389,7 +445,7 @@ type NystromKRR{T <: AbstractFloat} <: AbstractKRR{T}
     end
 end
 
-function NystromKRR{T}(
+function SomethingKRR{T}(
     λ    :: T,
     X    :: Matrix{T},
     r    :: Integer,
@@ -399,11 +455,11 @@ function NystromKRR{T}(
     Σinv :: Vector{T},
     Vt   :: Matrix{T}
 )
-    NystromKRR{T}(λ, X, r, m, ϕ, α, Σinv, Vt)
+    SomethingKRR{T}(λ, X, r, m, ϕ, α, Σinv, Vt)
 end
 
 function StatsBase.fit{T <: AbstractFloat}(
-      :: Type{NystromKRR},
+      :: Type{SomethingKRR},
     X :: Matrix{T},
     y :: Vector{T},
     λ :: T,
@@ -432,10 +488,10 @@ function StatsBase.fit{T <: AbstractFloat}(
 
     α = Diagonal( (λ*r) .+ Σinv ) * Vt * Kb * y
 
-    return NystromKRR(λ, X, r, m, ϕ, α, Σinv, Vt)
+    return SomethingKRR(λ, X, r, m, ϕ, α, Σinv, Vt)
 end
 
-function StatsBase.predict{T <: AbstractFloat}(KRR :: NystromKRR{T}, Xnew :: Matrix{T})
+function StatsBase.predict{T <: AbstractFloat}(KRR :: SomethingKRR{T}, Xnew :: Matrix{T})
     d, n = size(Xnew)
     Kbnew = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
                                     Matrix{T}(size(KRR.X, 2), n),
