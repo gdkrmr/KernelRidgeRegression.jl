@@ -1,6 +1,14 @@
 
 # X is dimensions in rows, observations in columns!!!!
 
+"""
+Basic Kernel Ridge Regression.
+
+* `λ`: The regularization parameter.
+* `X`: The data, a matrix with dimensions in rows and observations in columns.
+* `α`: The weights of the linear regression in kernel space, will be calculated by `fit`.
+* `ϕ`: A Kernel function
+"""
 type KRR{T <: AbstractFloat} <: AbstractKRR{T}
     λ :: T
     X :: Matrix{T}
@@ -44,8 +52,6 @@ function StatsBase.fit{T <: AbstractFloat}(
 
     KRR(λ, X, α, ϕ)
 end
-
-
 
 function StatsBase.predict!{T <: AbstractFloat}(
     KRR :: KRR{T},
@@ -98,6 +104,19 @@ function predict_and_add!{T <: AbstractFloat}(
     return y
 end
 
+
+"""
+Fast Kernel Ridge Regression.
+
+Divides the problem in `m` splits and calculates a separate Kernel Ridge Regression for each.
+
+* `λ`: The regularization parameter.
+* `m`: The number of splits for the data.
+* `X`: A vector containing a data matrix for each split.
+* `α`: A vector containing the weights of the linear regressions in kernel space for each split,
+       will be calculated by `fit`.
+* `ϕ`: A Kernel function (not a vector of kernel functions!).
+"""
 type FastKRR{T <: AbstractFloat} <: AbstractKRR{T}
     λ :: T
     m :: Int
@@ -194,10 +213,17 @@ function StatsBase.fit{T <: AbstractFloat}(
 end
 
 """
-get_X is a function that given a list of indices will load these into memory,
-e.g.:
-get_X(inds) = X[:,inds]
-get_y(inds) = y[inds]
+Fit a FastKRR in parallel
+
+* `n`:     The total number of observations.
+* `get_X`: A function that given a vector of observation indices will load these into memory,
+            e.g.:
+            `get_X(inds) = X[:, inds]`
+            `get_y(inds) = y[inds]`
+* `get_y`: A a function which given a vector of response indices will load these into memory.
+* `λ`:     The regularization parameter.
+* `m`:     The number of splits for the data.
+* `ϕ`:     A Kernel function
 """
 function fitPar{T <: AbstractFloat}(
           :: Type{FastKRR},
@@ -259,6 +285,18 @@ function StatsBase.predict{T <: AbstractFloat}(fast_krr::FastKRR{T}, X::Matrix{T
 end
 
 
+"""
+Random Fourier Features
+
+Details see Rahimi and Recht (2008)
+
+* `λ`: The regularization parameter.
+* `K`: The number of random vectors.
+* `W`: The random weights.
+* `α`: A vector containing the weights of the linear regressions in kernel space for each split,
+       will be calculated by `fit`.
+* `ϕ`: Kernel approximation function function.
+"""
 type RandomFourierFeatures{T <: AbstractFloat, S <: Number} <: AbstractKRR{T}
     λ :: T
     K :: Int
@@ -310,6 +348,18 @@ function StatsBase.predict{T <: AbstractFloat}(RFF::RandomFourierFeatures, X::Ma
 end
 
 
+"""
+Truncated Newton Kernel Ridge Regression
+
+Approximates the Kernel Ridge Regression by an early stopped optimization
+
+* `λ`: The regularization parameter.
+* `X`: The data, a matrix with dimensions in rows and observations in columns.
+* `α`: The weights of the linear regression in kernel space, will be calculated by `fit`.
+* `ϕ`: A Kernel function
+* `ɛ`: Error stopping criterion
+* `max_iter`: Maximum number of iterations.
+"""
 type TruncatedNewtonKRR{T <: AbstractFloat} <: AbstractKRR{T}
     λ        :: T
     X        :: Matrix{T}
@@ -364,6 +414,15 @@ function StatsBase.predict{T<:AbstractFloat}(KRR::TruncatedNewtonKRR{T}, X::Matr
     k * KRR.α
 end
 
+"""
+Nystrom Approximation of a Kernel Ridge Regression
+
+* `λ`:  The regularization parameter.
+* `Xm`: The sampled data, a matrix with dimensions in rows and observations in columns.
+* `m`:  The number of samples.
+* `ϕ`: A Kernel function
+* `α`:  The weights of the linear regression in kernel space, will be calculated by `fit`.
+"""
 type NystromKRR{T <: AbstractFloat} <: AbstractKRR{T}
     λ  :: T
     Xm :: Matrix{T}
@@ -406,7 +465,7 @@ function StatsBase.fit{T <: AbstractFloat}(
                                   ϕ, Xm, X)
     Kmm = Knm * Knm'
     for i in 1:m
-        Kmm[i, i] += m * λ
+        @inbounds Kmm[i, i] += m * λ
     end
 
     α = cholfact(Kmm) \ (Knm * y)
