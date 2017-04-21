@@ -8,12 +8,7 @@ export inverse,
     NystromKRR,
     fitPar
 
-
-
-# X is dimensions in rows, observations in columns!!!!
-
 import MLKernels
-import Iterators
 import StatsBase
 import StatsBase: fit, fitted, predict, nobs, predict!, RegressionModel
 

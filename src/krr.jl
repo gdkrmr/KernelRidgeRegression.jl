@@ -173,6 +173,7 @@ function FastKRR{T <: AbstractFloat}(krrs :: Union{Vector{KRR{T}}, Tuple{KRR{T}}
 end
 
 # equality hack for MLKernels
+# not fixed in 0.1.0
 import Base.==
 ==(x::MLKernels.Kernel, y::MLKernels.Kernel) = error("not implemented")
 ==(x::MLKernels.HyperParameters.HyperParameter, y::MLKernels.HyperParameters.HyperParameter) = x.value == y.value

@@ -3,6 +3,23 @@ using Gadfly
 using StatsBase
 BLAS.set_num_threads(1)
 
+using MLKernels
+
+isequal(GaussianKernel(3.0), GaussianKernel(3.0))
+GaussianKernel(3.0) == GaussianKernel(3.0)
+
+l = GaussianKernel(3.0)
+k = GaussianKernel(3.0)
+
+l == k                         # false
+l.alpha == k.alpha             # false
+l.alpha.value == k.alpha.value # true
+
+isimmutable(GaussianKernel(3.0)) # true
+isimmutable(l.alpha)             # false
+isimmutable(l.alpha.bounds)      # true
+isimmutable(l.alpha.value)       # true
+
 N = 5000
 x = rand(1, N) * 4π - 2π
 yy = sinc.(x) # vec(sinc.(4 .* x) .+ 0.2 .* sin.(30 .* x))
@@ -31,13 +48,13 @@ reload("KernelRidgeRegression")
                                              4/5000, 2000, 1.0, (X, W) -> tanh(X' * W));
 @time yrandnew2 = predict(myrandkrr2, xnew);
 
-@time myrandkrr3 = fit(KernelRidgeRegression.RandomKRR, x, y,
+@time myrandkrr3 = fit(KernelRidgeRegression.RandomFourierFeatures, x, y,
                                              4/5000, 2000, 1.0, (X, W) -> 1 ./ ((X' * W) .^ 2 + 1))
 @time yrandnew3 = predict(myrandkrr3 , xnew);
-@time myrandkrr4 = fit(KernelRidgeRegression.RandomKRR, x, y,
+@time myrandkrr4 = fit(KernelRidgeRegression.RandomFourierFeatures, x, y,
                                              4/5000, 2000, 1.0, (X, W) -> ((X' * W) ./ maximum(X'*W)))
 @time yrandnew4 = predict(myrandkrr4 , xnew);
-@time myrandkrr5 = fit(KernelRidgeRegression.RandomKRR, x, y,
+@time myrandkrr5 = fit(KernelRidgeRegression.RandomFourierFeatures, x, y,
                                              4/5000, 2000, 1.0, (X, W) -> begin
                                              z = X' * W
                                              f(x) = x > 0 ? x / (x + 1) : x / (x - 1)
