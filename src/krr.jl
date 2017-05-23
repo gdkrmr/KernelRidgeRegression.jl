@@ -461,15 +461,15 @@ function StatsBase.fit{T <: AbstractFloat}(
     @assert m < n
     m_idx = StatsBase.sample(1:n, m, replace = false)
     Xm = X[:, m_idx]
-    Knm = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
+    Kmn = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
                                   Matrix{T}(m, n),
                                   ϕ, Xm, X)
-    Kmm = Knm * Knm'
+    Kmm = Kmn * Kmn'
     for i in 1:m
         @inbounds Kmm[i, i] += m * λ
     end
 
-    α = cholfact(Kmm) \ (Knm * y)
+    α = cholfact(Kmm) \ (Kmn * y)
     NystromKRR(λ, Xm, m, ϕ, α)
 end
 
