@@ -27,10 +27,15 @@ y = squeeze(yy + 0.1randn(1, N), 1)
 xnew = collect(-2.5π:0.01:2.5π)'
 
 reload("KernelRidgeRegression")
+
 using KernelRidgeRegression
+using StatsBase
+using MLKernels
 
 @time mykrr = fit(KRR, x, y, 1e-3/5000, GaussianKernel(1.0))
 @time ynew = predict(mykrr, xnew);
+
+show(mykrr)
 
 @time mynystkrr = fit(KernelRidgeRegression.NystromKRR, x, y, 1e-3/5000, 280, MLKernels.GaussianKernel(100.0))
 @time ynystnew = predict(mynystkrr, xnew)

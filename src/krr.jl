@@ -104,14 +104,14 @@ function predict_and_add!{T <: AbstractFloat}(
     return y
 end
 
-function showcompact(x::KRR)
-    show(typeof(x))
+function showcompact(io::IO, x::KRR)
+    show(io, typeof(x))
 end
 
-function display(x::KRR)
-    showcompact(x)
-    println("\n    λ = ", x.λ)
-    print(    "    ϕ = "); display(x.ϕ)
+function show(io::IO, x::KRR)
+    showcompact(io, x)
+    println(io, ":\n    λ = ", x.λ)
+    print(io,      "    ϕ = "); show(io, x.ϕ)
 end
 
 
@@ -295,14 +295,14 @@ function predict{T <: AbstractFloat}(fast_krr::FastKRR{T}, X::Matrix{T})
     return y
 end
 
-function showcompact(x::FastKRR)
-    show(typeof(x))
+function showcompact(io::IO, x::FastKRR)
+    show(io, typeof(x))
 end
 
-function display(x::FastKRR)
-    showcompact(x)
-    println("\n    λ = ", x.λ)
-    print(    "    ϕ = "); display(x.ϕ)
+function show(io::IO, x::FastKRR)
+    showcompact(io, x)
+    println(io, ":\n    λ = ", x.λ)
+    print(io,      "    ϕ = "); display(x.ϕ)
 end
 
 
@@ -368,14 +368,14 @@ function predict{T <: AbstractFloat}(RFF::RandomFourierFeatures, X::Matrix{T})
     real(Z * RFF.α)
 end
 
-function showcompact(x::RandomFourierFeatures)
-    show(typeof(x))
+function showcompact(io::IO, x::RandomFourierFeatures)
+    show(io, typeof(x))
 end
 
-function display(x::RandomFourierFeatures)
-    showcompact(x)
-    println("\n    λ = ", x.λ)
-    print(    "    ϕ = "); display(x.ϕ)
+function show(io::IO, x::RandomFourierFeatures)
+    showcompact(io, x)
+    println(io, ":\n    λ = ", x.λ)
+    print(io,      "    ϕ = "); display(x.ϕ)
 end
 
 """
@@ -444,14 +444,14 @@ function predict{T<:AbstractFloat}(KRR::TruncatedNewtonKRR{T}, X::Matrix{T})
     k * KRR.α
 end
 
-function showcompact(x::TruncatedNewtonKRR)
-    show(typeof(x))
+function showcompact(io::IO, x::TruncatedNewtonKRR)
+    show(io, typeof(x))
 end
 
-function display(x::TruncatedNewtonKRR)
-    showcompact(x)
-    println("\n    λ = ", x.λ)
-    print(    "    ϕ = "); display(x.ϕ)
+function show(io::IO, x::TruncatedNewtonKRR)
+    showcompact(io, x)
+    println(io, ":\n    λ = ", x.λ)
+    print(io,      "    ϕ = "); display(x.ϕ)
 end
 
 """
@@ -519,15 +519,15 @@ function predict{T <: AbstractFloat}(KRR :: NystromKRR{T}, X :: Matrix{T})
     Knm * KRR.α
 end
 
-function showcompact(x::NystromKRR)
-    show(typeof(x))
+function showcompact(io::IO, x::NystromKRR)
+    show(io, typeof(x))
 end
 
-function display(x::NystromKRR)
-    showcompact(x)
-    println("\n    λ = ", x.λ)
-    print(    "    ϕ = "); display(x.ϕ)
-    println(  "    m = ", x.m)
+function show(io::IO, x::NystromKRR)
+    showcompact(io, x)
+    println(io, ":\n    λ = ", x.λ)
+    print(io,      "    ϕ = "); display(x.ϕ)
+    println(io,    "    m = ", x.m)
 end
 
 # An implementation error which nonetheless works
