@@ -27,21 +27,22 @@ y = squeeze(yy + 0.1randn(1, N), 1)
 xnew = collect(-2.5π:0.01:2.5π)'
 
 reload("KernelRidgeRegression")
+using KernelRidgeRegression
 
-@time mykrr = fit(KernelRidgeRegression.KRR, x, y, 1e-3/5000, MLKernels.GaussianKernel(1.0));
+@time mykrr = fit(KRR, x, y, 1e-3/5000, GaussianKernel(1.0))
 @time ynew = predict(mykrr, xnew);
 
-@time mynystkrr = fit(KernelRidgeRegression.NystromKRR, x, y, 1e-3/5000, 280, MLKernels.GaussianKernel(100.0));
-@time ynystnew = predict(mynystkrr, xnew);
+@time mynystkrr = fit(KernelRidgeRegression.NystromKRR, x, y, 1e-3/5000, 280, MLKernels.GaussianKernel(100.0))
+@time ynystnew = predict(mynystkrr, xnew)
 
-@time myfastkrr = fit(KernelRidgeRegression.FastKRR, x, y, 4/5000, 11, MLKernels.GaussianKernel(100.0));
-@time yfastnew = predict(myfastkrr, xnew);
+@time myfastkrr = fit(KernelRidgeRegression.FastKRR, x, y, 4/5000, 11, MLKernels.GaussianKernel(100.0))
+@time yfastnew = predict(myfastkrr, xnew)
 
-@time mytnkrr = fit(KernelRidgeRegression.TruncatedNewtonKRR, x, y, 4/5000, MLKernels.GaussianKernel(100.0), 0.5, 200);
-@time ytnnew = predict(mytnkrr, xnew);
+@time mytnkrr = fit(KernelRidgeRegression.TruncatedNewtonKRR, x, y, 4/5000, MLKernels.GaussianKernel(100.0), 0.5, 200)
+@time ytnnew = predict(mytnkrr, xnew)
 
-@time myrandkrr = fit(KernelRidgeRegression.RandomFourierFeatures, x, y, 1e-3/5000, 200 , 1.0);
-@time yrandnew = predict(myrandkrr, xnew);
+@time myrandkrr = fit(KernelRidgeRegression.RandomFourierFeatures, x, y, 1e-3/5000, 200 , 1.0)
+@time yrandnew = predict(myrandkrr, xnew)
 
 # tanh makes the whole thing rotation-symetric and go through the origin
 @time myrandkrr2 = fit(KernelRidgeRegression.RandomKRR, x, y,;

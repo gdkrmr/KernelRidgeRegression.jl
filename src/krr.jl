@@ -31,7 +31,7 @@ function KRR{T <: AbstractFloat}(
     KRR{T}(λ, X, α, ϕ)
 end
 
-function StatsBase.fit{T <: AbstractFloat}(
+function fit{T <: AbstractFloat}(
       :: Type{KRR},
     X :: Matrix{T},
     y :: Vector{T},
@@ -53,7 +53,7 @@ function StatsBase.fit{T <: AbstractFloat}(
     KRR(λ, X, α, ϕ)
 end
 
-function StatsBase.predict!{T <: AbstractFloat}(
+function predict!{T <: AbstractFloat}(
     KRR :: KRR{T},
     X   :: Matrix{T},
     y   :: Vector{T},
@@ -71,8 +71,8 @@ function StatsBase.predict!{T <: AbstractFloat}(
     return y
 end
 
-function StatsBase.predict!{T <: AbstractFloat}(KRR::KRR{T}, X::Matrix{T}, y::Vector{T})
-    StatsBase.predict!(
+function predict!{T <: AbstractFloat}(KRR::KRR{T}, X::Matrix{T}, y::Vector{T})
+    predict!(
         KRR, X, y, MLKernels.kernelmatrix!(
             MLKernels.ColumnMajor(),
             Matrix{T}(size(X, 2), size(KRR.X, 2)),
@@ -80,8 +80,8 @@ function StatsBase.predict!{T <: AbstractFloat}(KRR::KRR{T}, X::Matrix{T}, y::Ve
     ))
 end
 
-function StatsBase.predict{T <: AbstractFloat}(KRR::KRR{T}, X::Matrix{T})
-    StatsBase.predict!(KRR, X, Vector{T}(size(X, 2)))
+function predict{T <: AbstractFloat}(KRR::KRR{T}, X::Matrix{T})
+    predict!(KRR, X, Vector{T}(size(X, 2)))
 end
 
 # predict the KRR with the data in X and add the result to y, used to speedup
@@ -102,6 +102,16 @@ function predict_and_add!{T <: AbstractFloat}(
     )
     LinAlg.BLAS.gemv!('N', one(T), K, KRR.α, one(T), y)
     return y
+end
+
+function showcompact(x::KRR)
+    show(typeof(x))
+end
+
+function display(x::KRR)
+    showcompact(x)
+    println("\n    λ = ", x.λ)
+    print(    "    ϕ = "); display(x.ϕ)
 end
 
 
@@ -179,7 +189,7 @@ import Base.==
 ==(x::MLKernels.HyperParameters.HyperParameter, y::MLKernels.HyperParameters.HyperParameter) = x.value == y.value
 ==(x::MLKernels.GaussianKernel, y::MLKernels.GaussianKernel) = x.alpha == y.alpha
 
-function StatsBase.fit{T <: AbstractFloat}(
+function fit{T <: AbstractFloat}(
       :: Type{FastKRR},
     X :: Matrix{T},
     y :: Vector{T},
@@ -258,9 +268,9 @@ function fitPar{T <: AbstractFloat}(
     FastKRR(λ, m, XX, aa, ϕ)
 end
 
-StatsBase.fitted(obj::FastKRR) = error("fitted is not defined for $(typeof(obj))")
+fitted(obj::FastKRR) = error("fitted is not defined for $(typeof(obj))")
 
-function StatsBase.predict{T <: AbstractFloat}(fast_krr::FastKRR{T}, X::Matrix{T})
+function predict{T <: AbstractFloat}(fast_krr::FastKRR{T}, X::Matrix{T})
     @assert fast_krr.m > 0
     d, n = size(X)
     y = zeros(T, n)
@@ -283,6 +293,16 @@ function StatsBase.predict{T <: AbstractFloat}(fast_krr::FastKRR{T}, X::Matrix{T
     end
 
     return y
+end
+
+function showcompact(x::FastKRR)
+    show(typeof(x))
+end
+
+function display(x::FastKRR)
+    showcompact(x)
+    println("\n    λ = ", x.λ)
+    print(    "    ϕ = "); display(x.ϕ)
 end
 
 
@@ -323,7 +343,7 @@ function RandomFourierFeatures{T <: AbstractFloat, S <: Number}(
     RandomFourierFeatures{T, S}(λ, K, W, α, ϕ)
 end
 
-function StatsBase.fit{T<:AbstractFloat}(
+function fit{T<:AbstractFloat}(
       :: Type{RandomFourierFeatures},
     X :: Matrix{T},
     y :: Vector{T},
@@ -343,11 +363,20 @@ function StatsBase.fit{T<:AbstractFloat}(
     RandomFourierFeatures(λ, K, W, α, ϕ)
 end
 
-function StatsBase.predict{T <: AbstractFloat}(RFF::RandomFourierFeatures, X::Matrix{T})
+function predict{T <: AbstractFloat}(RFF::RandomFourierFeatures, X::Matrix{T})
     Z = RFF.ϕ(X, RFF.W) / sqrt(RFF.K)
     real(Z * RFF.α)
 end
 
+function showcompact(x::RandomFourierFeatures)
+    show(typeof(x))
+end
+
+function display(x::RandomFourierFeatures)
+    showcompact(x)
+    println("\n    λ = ", x.λ)
+    print(    "    ϕ = "); display(x.ϕ)
+end
 
 """
 Truncated Newton Kernel Ridge Regression
@@ -389,7 +418,7 @@ function TruncatedNewtonKRR{T}(
     TruncatedNewtonKRR{T}(λ, X, α, ϕ, ɛ, max_iter)
 end
 
-function StatsBase.fit{T <: AbstractFloat}(
+function fit{T <: AbstractFloat}(
     ::Type{TruncatedNewtonKRR}, X::Matrix{T}, y::Vector{T},
     λ::T, ϕ::MLKernels.Kernel{T}, ɛ::T = 0.5, max_iter::Int = 200
 )
@@ -408,11 +437,21 @@ function StatsBase.fit{T <: AbstractFloat}(
     TruncatedNewtonKRR(λ, X, α, ϕ, ɛ, max_iter)
 end
 
-function StatsBase.predict{T<:AbstractFloat}(KRR::TruncatedNewtonKRR{T}, X::Matrix{T})
+function predict{T<:AbstractFloat}(KRR::TruncatedNewtonKRR{T}, X::Matrix{T})
     k = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
                                 Matrix{T}(size(X, 2), size(KRR.X, 2)),
                                 KRR.ϕ, X, KRR.X)
     k * KRR.α
+end
+
+function showcompact(x::TruncatedNewtonKRR)
+    show(typeof(x))
+end
+
+function display(x::TruncatedNewtonKRR)
+    showcompact(x)
+    println("\n    λ = ", x.λ)
+    print(    "    ϕ = "); display(x.ϕ)
 end
 
 """
@@ -449,7 +488,7 @@ function NystromKRR{T <: AbstractFloat}(
     NystromKRR{T}(λ, Xm, m, ϕ, α)
 end
 
-function StatsBase.fit{T <: AbstractFloat}(
+function fit{T <: AbstractFloat}(
       :: Type{NystromKRR},
     X :: Matrix{T},
     y :: Vector{T},
@@ -459,7 +498,7 @@ function StatsBase.fit{T <: AbstractFloat}(
 )
     d, n = size(X)
     @assert m < n
-    m_idx = StatsBase.sample(1:n, m, replace = false)
+    m_idx = sample(1:n, m, replace = false)
     Xm = X[:, m_idx]
     Kmn = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
                                   Matrix{T}(m, n),
@@ -473,11 +512,22 @@ function StatsBase.fit{T <: AbstractFloat}(
     NystromKRR(λ, Xm, m, ϕ, α)
 end
 
-function StatsBase.predict{T <: AbstractFloat}(KRR :: NystromKRR{T}, X :: Matrix{T})
+function predict{T <: AbstractFloat}(KRR :: NystromKRR{T}, X :: Matrix{T})
     Knm = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
                                   Matrix{T}(size(X, 2), size(KRR.Xm, 2)),
                                   KRR.ϕ, X, KRR.Xm)
     Knm * KRR.α
+end
+
+function showcompact(x::NystromKRR)
+    show(typeof(x))
+end
+
+function display(x::NystromKRR)
+    showcompact(x)
+    println("\n    λ = ", x.λ)
+    print(    "    ϕ = "); display(x.ϕ)
+    println(  "    m = ", x.m)
 end
 
 # An implementation error which nonetheless works
@@ -518,7 +568,7 @@ function SomethingKRR{T}(
     SomethingKRR{T}(λ, X, r, m, ϕ, α, Σinv, Vt)
 end
 
-function StatsBase.fit{T <: AbstractFloat}(
+function fit{T <: AbstractFloat}(
       :: Type{SomethingKRR},
     X :: Matrix{T},
     y :: Vector{T},
@@ -533,7 +583,7 @@ function StatsBase.fit{T <: AbstractFloat}(
     @assert m <= n
     @assert λ >= zero(λ)
 
-    sᵢ = StatsBase.sample(1:n, m, replace = false)
+    sᵢ = sample(1:n, m, replace = false)
     Xₛ = X[:, sᵢ]
     Kb = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
                                  Matrix{T}(m, n),
@@ -551,7 +601,7 @@ function StatsBase.fit{T <: AbstractFloat}(
     return SomethingKRR(λ, X, r, m, ϕ, α, Σinv, Vt)
 end
 
-function StatsBase.predict{T <: AbstractFloat}(KRR :: SomethingKRR{T}, Xnew :: Matrix{T})
+function predict{T <: AbstractFloat}(KRR :: SomethingKRR{T}, Xnew :: Matrix{T})
     d, n = size(Xnew)
     Kbnew = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
                                     Matrix{T}(size(KRR.X, 2), n),
