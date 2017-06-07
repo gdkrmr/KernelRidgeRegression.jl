@@ -110,8 +110,8 @@ end
 
 function show(io::IO, x::KRR)
     showcompact(io, x)
-    println(io, ":\n    λ = ", x.λ)
-    print(io,      "    ϕ = "); show(io, x.ϕ)
+    print(io, ":\n    λ = ", x.λ)
+    print(io,  "\n    ϕ = "); show(io, x.ϕ)
 end
 
 
@@ -375,8 +375,8 @@ end
 function show(io::IO, x::RandomFourierFeatures)
     showcompact(io, x)
     println(io, ":\n    λ = ", x.λ)
-    println(io, ":\n    σ = ", x.σ)
-    println(io, ":\n    K = ", x.K)
+    println(io,   ":    σ = ", x.σ)
+    println(io,   ":    K = ", x.K)
     print(io,      "    ϕ = "); show(io, x.ϕ)
 end
 
@@ -452,8 +452,8 @@ end
 
 function show(io::IO, x::TruncatedNewtonKRR)
     showcompact(io, x)
-    println(io, ":\n    λ = ", x.λ)
-    print(io,      "    ϕ = "); show(io, x.ϕ)
+    print(io, ":\n    λ = ", x.λ)
+    print(io,  "\n    ϕ = "); show(io, x.ϕ)
 end
 
 """
@@ -527,9 +527,9 @@ end
 
 function show(io::IO, x::NystromKRR)
     showcompact(io, x)
-    println(io, ":\n    λ = ", x.λ)
-    print(  io,    "    ϕ = "); show(io, x.ϕ)
-    println(io,    "    m = ", x.m)
+    print(io, ":\n    λ = ", x.λ)
+    print(io,  "\n    ϕ = "); show(io, x.ϕ)
+    print(io,  "\n    m = ", x.m)
 end
 
 # An implementation error which nonetheless works
