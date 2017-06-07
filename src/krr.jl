@@ -302,7 +302,7 @@ end
 function show(io::IO, x::FastKRR)
     showcompact(io, x)
     println(io, ":\n    λ = ", x.λ)
-    print(io,      "    ϕ = "); display(x.ϕ)
+    print(io,      "    ϕ = "); show(io, x.ϕ)
 end
 
 
@@ -375,7 +375,9 @@ end
 function show(io::IO, x::RandomFourierFeatures)
     showcompact(io, x)
     println(io, ":\n    λ = ", x.λ)
-    print(io,      "    ϕ = "); display(x.ϕ)
+    println(io, ":\n    σ = ", x.σ)
+    println(io, ":\n    K = ", x.K)
+    print(io,      "    ϕ = "); show(io, x.ϕ)
 end
 
 """
@@ -451,7 +453,7 @@ end
 function show(io::IO, x::TruncatedNewtonKRR)
     showcompact(io, x)
     println(io, ":\n    λ = ", x.λ)
-    print(io,      "    ϕ = "); display(x.ϕ)
+    print(io,      "    ϕ = "); show(io, x.ϕ)
 end
 
 """
@@ -526,7 +528,7 @@ end
 function show(io::IO, x::NystromKRR)
     showcompact(io, x)
     println(io, ":\n    λ = ", x.λ)
-    print(io,      "    ϕ = "); display(x.ϕ)
+    print(  io,    "    ϕ = "); show(io, x.ϕ)
     println(io,    "    m = ", x.m)
 end
 
