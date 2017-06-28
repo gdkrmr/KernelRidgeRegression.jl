@@ -305,6 +305,7 @@ end
 function show(io::IO, x::FastKRR)
     showcompact(io, x)
     println(io, ":\n    λ = ", x.λ)
+    println(io,    "    m = ", x.m)
     print(io,      "    ϕ = "); show(io, x.ϕ)
 end
 
