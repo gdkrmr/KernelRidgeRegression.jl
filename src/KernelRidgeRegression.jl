@@ -1,7 +1,6 @@
 module KernelRidgeRegression
 
-export inverse,
-    KRR,
+export KRR,
     FastKRR,
     RandomFourierFeatures,
     TruncatedNewtonKRR,

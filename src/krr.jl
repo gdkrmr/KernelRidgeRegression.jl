@@ -184,10 +184,13 @@ end
 
 # equality hack for MLKernels
 # not fixed in 0.1.0
-import Base.==
-==(x::MLKernels.Kernel, y::MLKernels.Kernel) = error("not implemented")
-==(x::MLKernels.HyperParameters.HyperParameter, y::MLKernels.HyperParameters.HyperParameter) = x.value == y.value
-==(x::MLKernels.GaussianKernel, y::MLKernels.GaussianKernel) = x.alpha == y.alpha
+# import Base.==
+# ==(x::MLKernels.Kernel, y::MLKernels.Kernel) =
+#     error("not implemented for types $(typeof(x)), $(typeof(y))")
+# ==(x::MLKernels.HyperParameters.HyperParameter, y::MLKernels.HyperParameters.HyperParameter) =
+#     x.value == y.value
+# ==(x::MLKernels.GaussianKernel, y::MLKernels.GaussianKernel) =
+#     x.alpha == y.alpha
 
 function fit{T <: AbstractFloat}(
       :: Type{FastKRR},
@@ -336,6 +339,7 @@ end
 function RandomFourierFeatures{T <: AbstractFloat, S <: Number}(
     λ :: T,
     K :: Int,
+    σ :: T
     W :: Matrix{T},
     α :: Vector{S},
     ϕ :: Function
@@ -353,14 +357,14 @@ function fit{T<:AbstractFloat}(
     ϕ :: Function = (X, W) -> exp(X' * W * 1im)
 )
     d, n = size(X)
-    W = randn(d, K)/σ
+    W = randn(d, K) / σ
     Z = ϕ(X, W) / sqrt(K) # Kxd matrix, the normalization can probably be dropped
     Z2 = Z' * Z
     for i in 1:K
         @inbounds Z2[i, i] += λ * K
     end
     α = cholfact(Z2) \ (Z' * y)
-    RandomFourierFeatures(λ, K, W, α, ϕ)
+    RandomFourierFeatures(λ, K, σ, W, α, ϕ)
 end
 
 function predict{T <: AbstractFloat}(RFF::RandomFourierFeatures, X::Matrix{T})

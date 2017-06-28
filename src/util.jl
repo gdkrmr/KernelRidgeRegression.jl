@@ -2,11 +2,11 @@
 range(x) = minimum(x), maximum(x)
 
 function make_blocks(nobs, nblocks)
-    maxbs, rest = divrem(nobs, nblocks)
+    maxbs, reminder = divrem(nobs, nblocks)
 
     res = fill(maxbs, nblocks)
-    if rest > 0
-        res[1:rest] = maxbs + 1
+    if reminder > 0
+        res[1:reminder] = maxbs + 1
     end
     res
 end
