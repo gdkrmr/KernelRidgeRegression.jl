@@ -72,10 +72,10 @@ show(mykrr)
 @time yrandnew5 = predict(myrandkrr5 , xnew);
 
 
-KernelRidgeRegression.range(ynew - yfastnew)
-KernelRidgeRegression.range(ynew - yrandnew)
-KernelRidgeRegression.range(ynew - ytnnew)
-KernelRidgeRegression.range(ynew - ynystnew)
+extrema(ynew - yfastnew)
+extrema(ynew - yrandnew)
+extrema(ynew - ytnnew)
+extrema(ynew - ynystnew)
 
 sqrt(mean((ynew - ynystnew) .^ 2))
 sqrt(mean((ynew - yfastnew) .^ 2))
