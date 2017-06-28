@@ -18,10 +18,12 @@ matrix:
     - julia: 0.6
 
 script:
-  - julia -e 'Pkg.clone("https://github.com/gdkrmr/KernelRidgeRegression.jl"); Pkg.test("KernelRidgeRegression", coverage = true)' 
+  - julia -e 'julia -e 'Pkg.clone(pwd())'' 
+  - julia -e 'Pkg.test("DifferentialEquations")'
 
 after_success:
   - julia -e 'cd(Pkg.dir("KernelRidgeRegression")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
+  - julia -e 'Pkg.status("KernelRidgeRegression"))'
 
 notifications:
   email:
