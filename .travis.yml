@@ -24,7 +24,7 @@ script:
 
 after_success:
   - julia -e 'cd(Pkg.dir("KernelRidgeRegression")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
-  - julia -e 'Pkg.status("KernelRidgeRegression"))'
+  - julia -e 'Pkg.status("KernelRidgeRegression")'
 
 notifications:
   email:
