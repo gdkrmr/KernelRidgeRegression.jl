@@ -18,8 +18,8 @@ matrix:
     - julia: 0.6
 
 script:
-  - julia -e 'julia -e 'Pkg.clone(pwd())'' 
-  - julia -e 'Pkg.test("DifferentialEquations")'
+  - julia -e 'Pkg.clone(pwd())' 
+  - julia -e 'Pkg.test("KernelRidgeRegression")'
 
 after_success:
   - julia -e 'cd(Pkg.dir("KernelRidgeRegression")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
