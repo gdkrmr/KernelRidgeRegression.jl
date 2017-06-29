@@ -72,10 +72,10 @@ show(mykrr)
 @time yrandnew5 = predict(myrandkrr5 , xnew);
 
 
-KernelRidgeRegression.range(ynew - yfastnew)
-KernelRidgeRegression.range(ynew - yrandnew)
-KernelRidgeRegression.range(ynew - ytnnew)
-KernelRidgeRegression.range(ynew - ynystnew)
+extrema(ynew - yfastnew)
+extrema(ynew - yrandnew)
+extrema(ynew - ytnnew)
+extrema(ynew - ynystnew)
 
 sqrt(mean((ynew - ynystnew) .^ 2))
 sqrt(mean((ynew - yfastnew) .^ 2))
@@ -83,16 +83,16 @@ sqrt(mean((ynew - yrandnew) .^ 2))
 
 
 plot(
-    layer(x = xnew, y = yfastnew,  Geom.line, Theme(default_color = colorant"yellow")),
-    layer(x = xnew, y = ynystnew,  Geom.line, Theme(default_color = colorant"red")),
+    # layer(x = xnew, y = yfastnew,  Geom.line, Theme(default_color = colorant"yellow")),
+    # layer(x = xnew, y = ynystnew,  Geom.line, Theme(default_color = colorant"red")),
     # layer(x = xnew, y = ytnnew,    Geom.line, Theme(default_color = colorant"purple")),
-    # layer(x = xnew, y = yrandnew,  Geom.line, Theme(default_color = colorant"purple")),
+    layer(x = xnew, y = yrandnew,  Geom.line, Theme(default_color = colorant"purple")),
     # layer(x = xnew, y = yrandnew2,  Geom.line, Theme(default_color = colorant"yellow")),
     # layer(x = xnew, y = ynew,      Geom.line, Theme(default_color = colorant"green")),
     layer(x = x,    y = y,        Geom.line, Theme(default_color = colorant"blue")),
     Coord.cartesian(ymin = -1.5, ymax = 1.5),
     Guide.manual_color_key(
-        "", ["Nystrom", "Fast", "KRR", "Data"],
+        "", ["Fast", "Nystrom", "RFF", "Data"],
         [colorant"red", colorant"purple", colorant"green", colorant"blue"]
     )
 )

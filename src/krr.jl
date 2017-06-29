@@ -305,6 +305,7 @@ end
 function show(io::IO, x::FastKRR)
     showcompact(io, x)
     println(io, ":\n    λ = ", x.λ)
+    println(io,    "    m = ", x.m)
     print(io,      "    ϕ = "); show(io, x.ϕ)
 end
 
@@ -324,27 +325,29 @@ Details see Rahimi and Recht (2008)
 type RandomFourierFeatures{T <: AbstractFloat, S <: Number} <: AbstractKRR{T}
     λ :: T
     K :: Int
+    σ :: T
     W :: Matrix{T}
     α :: Vector{S}
     ϕ :: Function
 
-    function RandomFourierFeatures(λ, K, W, α, ϕ)
+    function RandomFourierFeatures(λ, K, σ, W, α, ϕ)
         @assert λ >= zero(T)
         @assert K > zero(Int)
         @assert size(W, 2) == K
-        new(λ, K, W, α, ϕ)
+        @assert σ > zero(σ)
+        new(λ, K, σ, W, α, ϕ)
     end
 end
 
 function RandomFourierFeatures{T <: AbstractFloat, S <: Number}(
     λ :: T,
     K :: Int,
-    σ :: T
+    σ :: T,
     W :: Matrix{T},
     α :: Vector{S},
     ϕ :: Function
 )
-    RandomFourierFeatures{T, S}(λ, K, W, α, ϕ)
+    RandomFourierFeatures{T, S}(λ, K, σ, W, α, ϕ)
 end
 
 function fit{T<:AbstractFloat}(

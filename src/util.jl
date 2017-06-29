@@ -1,5 +1,4 @@
 # utility functions
-range(x) = minimum(x), maximum(x)
 
 function make_blocks(nobs, nblocks)
     maxbs, reminder = divrem(nobs, nblocks)
