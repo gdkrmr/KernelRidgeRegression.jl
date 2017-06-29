@@ -65,7 +65,7 @@ etn   = sqrt(mean((vec(sinc.(xnew)) - ytnnew) .^ 2))
 replstr(x) = sprint((io, y′) -> show(IOContext(io, :limit => true), MIME("text/plain"), y′), x)
 
 @test replstr(mykrr) == "KernelRidgeRegression.KRR{Float64}:\n    λ = 2.0e-7\n    ϕ = SquaredExponentialKernel(100.0)"
-@test contains(replstr(myrandkrr), "KernelRidgeRegression.RandomFourierFeatures{Float64,Complex{Float64}}:\n    λ = 0.001\n:    σ = 1.0\n:    K = 300\n    ϕ = KernelRidgeRegression")
+@test contains(replstr(myrandkrr), "KernelRidgeRegression.RandomFourierFeatures{Float64,Complex{Float64}}:\n    λ = 0.002\n:    σ = 1.0\n:    K = 500\n    ϕ = KernelRidgeRegression")
 @test replstr(mynystkrr) == "KernelRidgeRegression.NystromKRR{Float64}:\n    λ = 2.0e-7\n    ϕ = SquaredExponentialKernel(100.0)\n    m = 280"
 @test replstr(myfastkrr) == "KernelRidgeRegression.FastKRR{Float64}:\n    λ = 0.0008\n    m = 11\n    ϕ = SquaredExponentialKernel(100.0)"
 @test replstr(myfastkrr2) == "KernelRidgeRegression.FastKRR{Float64}:\n    λ = 0.0008\n    m = 11\n    ϕ = SquaredExponentialKernel(100.0)"
