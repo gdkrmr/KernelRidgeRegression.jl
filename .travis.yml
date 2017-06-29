@@ -22,7 +22,7 @@ script:
   - julia -e 'Pkg.test("KernelRidgeRegression", coverage = true)'
 
 after_success:
-  - julia -e 'cd(Pkg.dir("KernelRidgeRegression")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
+  - julia -e 'if is_linux() cd(Pkg.dir("KernelRidgeRegression")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder()) end'
   - julia -e 'Pkg.status("KernelRidgeRegression")'
 
 notifications:
