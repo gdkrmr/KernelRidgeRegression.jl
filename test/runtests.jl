@@ -38,7 +38,7 @@ mytnkrr = fit(TruncatedNewtonKRR,
 ytnnew = predict(mytnkrr, xnew)
 
 myrandkrr = fit(RandomFourierFeatures,
-                x, y, 1/1000.0, 300, 1.0)
+                x, y, 1/500.0, 500, 1.0)
 yrandnew = predict(myrandkrr, xnew)
 
 emean = sqrt(mean((vec(sinc.(xnew)) - mean(xnew))))
