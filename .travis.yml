@@ -20,7 +20,7 @@ matrix:
 script:
   - julia -e 'Pkg.clone(pwd())' 
   - julia -e 'Pkg.checkout("MLKernels")'
-  - julia -e 'Pkg.test("KernelRidgeRegression")'
+  - julia -e 'Pkg.test("KernelRidgeRegression", coverage = true)'
 
 after_success:
   - julia -e 'cd(Pkg.dir("KernelRidgeRegression")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
