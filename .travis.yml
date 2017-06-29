@@ -17,7 +17,8 @@ matrix:
     - julia: 0.6
 
 script:
-  - julia -e 'Pkg.clone(pwd())' 
+  - julia -e 'Pkg.update(); Pkg.add("MLKernels");'
+  - julia -e 'Pkg.clone(pwd());' 
   - julia -e 'Pkg.test("KernelRidgeRegression", coverage = true)'
 
 after_success:
