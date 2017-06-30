@@ -18,7 +18,7 @@ mykrr = fit(KRR, x, y, 1e-3/5000,
 ynew = predict(mykrr, xnew);
 
 mynystkrr = fit(NystromKRR,
-                x, y, 1e-3/5000, 280,
+                x, y, 10.0, 280,
                 GaussianKernel(100.0))
 ynystnew = predict(mynystkrr, xnew)
 
@@ -66,7 +66,7 @@ replstr(x) = sprint((io, y′) -> show(IOContext(io, :limit => true), MIME("text
 
 @test replstr(mykrr) == "KernelRidgeRegression.KRR{Float64}:\n    λ = 2.0e-7\n    ϕ = SquaredExponentialKernel(100.0)"
 @test contains(replstr(myrandkrr), "KernelRidgeRegression.RandomFourierFeatures{Float64,Complex{Float64}}:\n    λ = 0.002\n:    σ = 1.0\n:    K = 500\n    ϕ = KernelRidgeRegression")
-@test replstr(mynystkrr) == "KernelRidgeRegression.NystromKRR{Float64}:\n    λ = 2.0e-7\n    ϕ = SquaredExponentialKernel(100.0)\n    m = 280"
+@test replstr(mynystkrr) == "KernelRidgeRegression.NystromKRR{Float64}:\n    λ = 10.0\n    ϕ = SquaredExponentialKernel(100.0)\n    m = 280"
 @test replstr(myfastkrr) == "KernelRidgeRegression.FastKRR{Float64}:\n    λ = 0.0008\n    m = 11\n    ϕ = SquaredExponentialKernel(100.0)"
 @test replstr(myfastkrr2) == "KernelRidgeRegression.FastKRR{Float64}:\n    λ = 0.0008\n    m = 11\n    ϕ = SquaredExponentialKernel(100.0)"
 @test replstr(mytnkrr) == "KernelRidgeRegression.TruncatedNewtonKRR{Float64}:\n    λ = 0.0008\n    ϕ = SquaredExponentialKernel(100.0)"

@@ -487,6 +487,31 @@ type NystromKRR{T <: AbstractFloat} <: AbstractKRR{T}
     end
 end
 
+# TODO: add p for rank approximation or an epsilon value for keeping eigenvalues
+"""
+Nystrom Approximation of a Kernel Ridge Regression
+
+* `λ`: The regularization parameter.
+* `X`: The sampled data, a matrix with dimensions in rows and observations in columns.
+* `m`: The number of samples.
+* `ϕ`: A Kernel function
+* `α`: The weights of the linear regression in kernel space, will be calculated by `fit`.
+"""
+type NystromKRR{T <: AbstractFloat} <: AbstractKRR{T}
+    λ :: T
+    X :: Matrix{T}
+    m :: Integer
+    ϕ :: MLKernels.MercerKernel{T}
+    α :: Vector{T}
+
+    function NystromKRR(λ, X, m, ϕ, α)
+        @assert m > zero(m)
+        @assert λ >= zero(λ)
+        @assert length(α) == size(X, 2)
+        new(λ, X, m, ϕ, α)
+    end
+end
+
 function NystromKRR{T <: AbstractFloat}(
     λ  :: T,
     Xm :: Matrix{T},
@@ -512,19 +537,41 @@ function fit{T <: AbstractFloat}(
     Kmn = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
                                   Matrix{T}(m, n),
                                   ϕ, Xm, X)
-    Kmm = Kmn * Kmn'
-    for i in 1:m
-        @inbounds Kmm[i, i] += m * λ
-    end
 
-    α = cholfact(Kmm) \ (Kmn * y)
-    NystromKRR(λ, Xm, m, ϕ, α)
+    Kmm = Kmn[:, m_idx]
+    # naive way:
+    # α = (y - Kmn' * (((Kmn * Kmn') + λ * Kmm) \ (Kmn * y))) ./ λ
+    #
+    # numerically stable:
+    # K ≈ Kapprox = Kₙₘ * Kₘₘ⁻¹ * Kₘₙ
+    # K = U * Λ * Uᵀ
+    # Kapprox = Uapprox * Λapprox * Uapproxᵀ
+    # Kmm     = Uₘₘ * Λₘₘ * Uₘₘᵀ
+    # with
+    # Uapprox = √m/n Λ⁻¹ Kₙₘ Uₘₘ
+    # Λapprox = n/m Λₘₘ
+    Kmm_e = eigfact(Symmetric(Kmm))
+
+    # Keep only positive eigenvalues
+    Kmme_ind = find(Kmm_e[:values] .> 1e-1)
+    Λm = Kmm_e[:values][Kmme_ind]
+    Um = Kmm_e[:vectors][:, Kmme_ind]
+    # There is no need to sort the eigenvalues/vectors
+
+    # Uapprox and Λapprox
+    U = sqrt(m / n) * ((Kmn' * Um) * Diagonal(1 ./ Λm))
+    Λ = Diagonal((n / m) * Λm)
+
+    # Williams & Seeger (2001) formula 11:
+    α = (1 / λ) * (y - U * ((λ * I + Λ * (U' * U)) \ (Λ * (U' * y))))
+
+    NystromKRR(λ, X, m, ϕ, α)
 end
 
 function predict{T <: AbstractFloat}(KRR :: NystromKRR{T}, X :: Matrix{T})
     Knm = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
-                                  Matrix{T}(size(X, 2), size(KRR.Xm, 2)),
-                                  KRR.ϕ, X, KRR.Xm)
+                                  Matrix{T}(size(X, 2), size(KRR.X, 2)),
+                                  KRR.ϕ, X, KRR.X)
     Knm * KRR.α
 end
 
