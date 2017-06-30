@@ -464,7 +464,7 @@ function show(io::IO, x::TruncatedNewtonKRR)
 end
 
 """
-Nystrom Approximation of a Kernel Ridge Regression
+Subset of Regressors, (almost) equivalent to the Nyström approximation.
 
 * `λ`:  The regularization parameter.
 * `Xm`: The sampled data, a matrix with dimensions in rows and observations in columns.
@@ -472,19 +472,87 @@ Nystrom Approximation of a Kernel Ridge Regression
 * `ϕ`: A Kernel function
 * `α`:  The weights of the linear regression in kernel space, will be calculated by `fit`.
 """
-type NystromKRR{T <: AbstractFloat} <: AbstractKRR{T}
+type SubsetRegressorsKRR{T <: AbstractFloat} <: AbstractKRR{T}
     λ  :: T
     Xm :: Matrix{T}
     m  :: Integer
     ϕ  :: MLKernels.MercerKernel{T}
     α  :: Vector{T}
 
-    function NystromKRR(λ, Xm, m, ϕ, α)
+    function SubsetRegressorsKRR(λ, Xm, m, ϕ, α)
         @assert m == size(Xm, 2)
         @assert λ >= zero(λ)
         @assert length(α) == m
         new(λ, Xm, m, ϕ, α)
     end
+end
+
+function SubsetRegressorsKRR{T <: AbstractFloat}(
+    λ  :: T,
+    Xm :: Matrix{T},
+    m  :: Integer,
+    ϕ  :: MLKernels.MercerKernel{T},
+    α  :: Vector{T}
+)
+    SubsetRegressorsKRR{T}(λ, Xm, m, ϕ, α)
+end
+
+function fit{T <: AbstractFloat}(
+      :: Type{SubsetRegressorsKRR},
+    X :: Matrix{T},
+    y :: Vector{T},
+    λ :: T,
+    m :: Integer,
+    ϕ :: MLKernels.MercerKernel{T}
+)
+    d, n = size(X)
+    @assert m < n
+    m_idx = sample(1:n, m, replace = false)
+    Xm = X[:, m_idx]
+    Kmn = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
+                                  Matrix{T}(m, n),
+                                  ϕ, Xm, X)
+    Kmm = Kmn[:, m_idx]
+
+    # naive way:
+    α = ((Kmn * Kmn') + λ * Kmm) \ (Kmn * y)
+
+    # The V method:
+    #
+    # From Foster et al. 2009: Stable and efficient gaussian process calculation
+    #
+    # Kmm = VVᵀ, Cholesky factorization
+    # Kmm_chol = cholfact(Kmm)
+    # Vmm = Kmm_chol[:L] # = V
+    # TODO: no Idea what the autors mean by -T, the inversetranspose
+    # inversetranspose(x) = transpose(inv(x))
+    # Vmmit = inversetranspose(Vmm)
+    # V = Kmn' * Vmmit
+
+    # @show size(V)
+    # @show size(Vmm)
+    # @show size(Vmmit)
+    # α = Vmmit * cholfact(λ * I + V' * V) \ (V' * y)
+
+    SubsetRegressorsKRR(λ, Xm, m, ϕ, α)
+end
+
+function predict{T <: AbstractFloat}(KRR :: SubsetRegressorsKRR{T}, X :: Matrix{T})
+    Knm = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
+                                  Matrix{T}(size(X, 2), size(KRR.Xm, 2)),
+                                  KRR.ϕ, X, KRR.Xm)
+    Knm * KRR.α
+end
+
+function showcompact(io::IO, x::SubsetRegressorsKRR)
+    show(io, typeof(x))
+end
+
+function show(io::IO, x::SubsetRegressorsKRR)
+    showcompact(io, x)
+    print(io, ":\n    λ = ", x.λ)
+    print(io,  "\n    ϕ = "); show(io, x.ϕ)
+    print(io,  "\n    m = ", x.m)
 end
 
 # TODO: add p for rank approximation or an epsilon value for keeping eigenvalues
