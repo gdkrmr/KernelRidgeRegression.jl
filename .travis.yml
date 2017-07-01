@@ -9,7 +9,7 @@ os:
 julia:
   - 0.5
   - 0.6
-  - nightly
+  # - nightly
 
 matrix:
   fast_finish: true
@@ -18,12 +18,11 @@ matrix:
     - julia: 0.6
 
 script:
-  - julia -e 'Pkg.clone(pwd())' 
-  - julia -e 'Pkg.checkout("MLKernels")'
+  - julia -e 'Pkg.clone(pwd());' 
   - julia -e 'Pkg.test("KernelRidgeRegression", coverage = true)'
 
 after_success:
-  - julia -e 'cd(Pkg.dir("KernelRidgeRegression")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
+  - julia -e 'if is_linux() cd(Pkg.dir("KernelRidgeRegression")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder()) end'
   - julia -e 'Pkg.status("KernelRidgeRegression")'
 
 notifications:

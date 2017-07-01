@@ -7,6 +7,7 @@ export KRR,
     RandomFourierFeatures,
     TruncatedNewtonKRR,
     NystromKRR,
+    SubsetRegressorsKRR,
     fitPar
 
 import Base: show, showcompact, display

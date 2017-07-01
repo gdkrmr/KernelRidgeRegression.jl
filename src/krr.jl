@@ -464,7 +464,7 @@ function show(io::IO, x::TruncatedNewtonKRR)
 end
 
 """
-Nystrom Approximation of a Kernel Ridge Regression
+Subset of Regressors, (almost) equivalent to the Nyström approximation.
 
 * `λ`:  The regularization parameter.
 * `Xm`: The sampled data, a matrix with dimensions in rows and observations in columns.
@@ -472,18 +472,111 @@ Nystrom Approximation of a Kernel Ridge Regression
 * `ϕ`: A Kernel function
 * `α`:  The weights of the linear regression in kernel space, will be calculated by `fit`.
 """
-type NystromKRR{T <: AbstractFloat} <: AbstractKRR{T}
+type SubsetRegressorsKRR{T <: AbstractFloat} <: AbstractKRR{T}
     λ  :: T
     Xm :: Matrix{T}
     m  :: Integer
     ϕ  :: MLKernels.MercerKernel{T}
     α  :: Vector{T}
 
-    function NystromKRR(λ, Xm, m, ϕ, α)
+    function SubsetRegressorsKRR(λ, Xm, m, ϕ, α)
         @assert m == size(Xm, 2)
         @assert λ >= zero(λ)
         @assert length(α) == m
         new(λ, Xm, m, ϕ, α)
+    end
+end
+
+function SubsetRegressorsKRR{T <: AbstractFloat}(
+    λ  :: T,
+    Xm :: Matrix{T},
+    m  :: Integer,
+    ϕ  :: MLKernels.MercerKernel{T},
+    α  :: Vector{T}
+)
+    SubsetRegressorsKRR{T}(λ, Xm, m, ϕ, α)
+end
+
+function fit{T <: AbstractFloat}(
+      :: Type{SubsetRegressorsKRR},
+    X :: Matrix{T},
+    y :: Vector{T},
+    λ :: T,
+    m :: Integer,
+    ϕ :: MLKernels.MercerKernel{T}
+)
+    d, n = size(X)
+    @assert m < n
+    m_idx = sample(1:n, m, replace = false)
+    Xm = X[:, m_idx]
+    Kmn = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
+                                  Matrix{T}(m, n),
+                                  ϕ, Xm, X)
+    Kmm = Kmn[:, m_idx]
+
+    # naive way:
+    α = ((Kmn * Kmn') + λ * Kmm) \ (Kmn * y)
+
+    # The V method:
+    #
+    # From Foster et al. 2009: Stable and efficient gaussian process calculation
+    #
+    # Kmm = VVᵀ, Cholesky factorization
+    # Kmm_chol = cholfact(Kmm)
+    # Vmm = Kmm_chol[:L] # = V
+    # TODO: no Idea what the autors mean by -T, the inversetranspose
+    # inversetranspose(x) = transpose(inv(x))
+    # Vmmit = inversetranspose(Vmm)
+    # V = Kmn' * Vmmit
+
+    # @show size(V)
+    # @show size(Vmm)
+    # @show size(Vmmit)
+    # α = Vmmit * cholfact(λ * I + V' * V) \ (V' * y)
+
+    SubsetRegressorsKRR(λ, Xm, m, ϕ, α)
+end
+
+function predict{T <: AbstractFloat}(KRR :: SubsetRegressorsKRR{T}, X :: Matrix{T})
+    Knm = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
+                                  Matrix{T}(size(X, 2), size(KRR.Xm, 2)),
+                                  KRR.ϕ, X, KRR.Xm)
+    Knm * KRR.α
+end
+
+function showcompact(io::IO, x::SubsetRegressorsKRR)
+    show(io, typeof(x))
+end
+
+function show(io::IO, x::SubsetRegressorsKRR)
+    showcompact(io, x)
+    print(io, ":\n    λ = ", x.λ)
+    print(io,  "\n    ϕ = "); show(io, x.ϕ)
+    print(io,  "\n    m = ", x.m)
+end
+
+# TODO: add p for rank approximation or an epsilon value for keeping eigenvalues
+"""
+Nystrom Approximation of a Kernel Ridge Regression
+
+* `λ`: The regularization parameter.
+* `X`: The sampled data, a matrix with dimensions in rows and observations in columns.
+* `m`: The number of samples.
+* `ϕ`: A Kernel function
+* `α`: The weights of the linear regression in kernel space, will be calculated by `fit`.
+"""
+type NystromKRR{T <: AbstractFloat} <: AbstractKRR{T}
+    λ :: T
+    X :: Matrix{T}
+    m :: Integer
+    ϕ :: MLKernels.MercerKernel{T}
+    α :: Vector{T}
+
+    function NystromKRR(λ, X, m, ϕ, α)
+        @assert m > zero(m)
+        @assert λ >= zero(λ)
+        @assert length(α) == size(X, 2)
+        new(λ, X, m, ϕ, α)
     end
 end
 
@@ -512,19 +605,41 @@ function fit{T <: AbstractFloat}(
     Kmn = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
                                   Matrix{T}(m, n),
                                   ϕ, Xm, X)
-    Kmm = Kmn * Kmn'
-    for i in 1:m
-        @inbounds Kmm[i, i] += m * λ
-    end
 
-    α = cholfact(Kmm) \ (Kmn * y)
-    NystromKRR(λ, Xm, m, ϕ, α)
+    Kmm = Kmn[:, m_idx]
+    # naive way:
+    # α = (y - Kmn' * (((Kmn * Kmn') + λ * Kmm) \ (Kmn * y))) ./ λ
+    #
+    # numerically stable:
+    # K ≈ Kapprox = Kₙₘ * Kₘₘ⁻¹ * Kₘₙ
+    # K = U * Λ * Uᵀ
+    # Kapprox = Uapprox * Λapprox * Uapproxᵀ
+    # Kmm     = Uₘₘ * Λₘₘ * Uₘₘᵀ
+    # with
+    # Uapprox = √m/n Λ⁻¹ Kₙₘ Uₘₘ
+    # Λapprox = n/m Λₘₘ
+    Kmm_e = eigfact(Symmetric(Kmm))
+
+    # Keep only positive eigenvalues
+    Kmme_ind = find(Kmm_e[:values] .> 1e-1)
+    Λm = Kmm_e[:values][Kmme_ind]
+    Um = Kmm_e[:vectors][:, Kmme_ind]
+    # There is no need to sort the eigenvalues/vectors
+
+    # Uapprox and Λapprox
+    U = sqrt(m / n) * ((Kmn' * Um) * Diagonal(1 ./ Λm))
+    Λ = Diagonal((n / m) * Λm)
+
+    # Williams & Seeger (2001) formula 11:
+    α = (1 / λ) * (y - U * ((λ * I + Λ * (U' * U)) \ (Λ * (U' * y))))
+
+    NystromKRR(λ, X, m, ϕ, α)
 end
 
 function predict{T <: AbstractFloat}(KRR :: NystromKRR{T}, X :: Matrix{T})
     Knm = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
-                                  Matrix{T}(size(X, 2), size(KRR.Xm, 2)),
-                                  KRR.ϕ, X, KRR.Xm)
+                                  Matrix{T}(size(X, 2), size(KRR.X, 2)),
+                                  KRR.ϕ, X, KRR.X)
     Knm * KRR.α
 end
 
