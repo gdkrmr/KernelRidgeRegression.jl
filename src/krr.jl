@@ -537,6 +537,28 @@ function fit{T <: AbstractFloat}(
     SubsetRegressorsKRR(λ, Xm, m, ϕ, α)
 end
 
+function fit{T <: AbstractFloat}(
+      :: Type{SubsetRegressorsKRR},
+    X :: Matrix{T},
+    y :: Vector{T},
+    λ :: T,
+    w :: Vector,
+    m :: Integer,
+    ϕ :: MLKernels.MercerKernel{T}
+)
+    d, n = size(X)
+    @assert n == length(w)
+    @assert m < n
+    m_idx = sample(1:n, weights(w), m, replace = false)
+    Xm = X[:, m_idx]
+    Kmn = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
+                                  Matrix{T}(m, n),
+                                  ϕ, Xm, X)
+    Kmm = Kmn[:, m_idx]
+    α = ((Kmn * Kmn') + λ * Kmm) \ (Kmn * y)
+    SubsetRegressorsKRR(λ, Xm, m, ϕ, α)
+end
+
 function predict{T <: AbstractFloat}(KRR :: SubsetRegressorsKRR{T}, X :: Matrix{T})
     Knm = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
                                   Matrix{T}(size(X, 2), size(KRR.Xm, 2)),
