@@ -26,6 +26,11 @@ mysrkrr = fit(SubsetRegressorsKRR,
                 GaussianKernel(100.0))
 ysrnew = predict(mysrkrr, xnew)
 
+mysrwkrr = fit(SubsetRegressorsKRR,
+                x, y, 1.0, rand(N), 280,
+                GaussianKernel(100.0))
+ysrwnew = predict(mysrwkrr, xnew)
+
 myfastkrr = fit(FastKRR,
                 x, y, 4/5000, 11,
                 GaussianKernel(100.0))
@@ -49,6 +54,7 @@ emean = sqrt(mean((vec(sinc.(xnew)) - mean(xnew)) .^ 2))
 ekrr  = sqrt(mean((vec(sinc.(xnew)) - ynew)       .^ 2))
 enyst = sqrt(mean((vec(sinc.(xnew)) - ynystnew)   .^ 2))
 esr   = sqrt(mean((vec(sinc.(xnew)) - ysrnew)     .^ 2))
+esrw  = sqrt(mean((vec(sinc.(xnew)) - ysrwnew)    .^ 2))
 efast = sqrt(mean((vec(sinc.(xnew)) - yfastnew)   .^ 2))
 erand = sqrt(mean((vec(sinc.(xnew)) - yrandnew)   .^ 2))
 etn   = sqrt(mean((vec(sinc.(xnew)) - ytnnew)     .^ 2))
@@ -57,6 +63,7 @@ etn   = sqrt(mean((vec(sinc.(xnew)) - ytnnew)     .^ 2))
 @test eltype(ekrr ) == Float64
 @test eltype(enyst) == Float64
 @test eltype(esr)   == Float64
+@test eltype(esrw)  == Float64
 @test eltype(efast) == Float64
 @test eltype(erand) == Float64
 @test eltype(etn  ) == Float64
@@ -64,6 +71,7 @@ etn   = sqrt(mean((vec(sinc.(xnew)) - ytnnew)     .^ 2))
 @test emean > ekrr
 @test emean > enyst
 @test emean > esr
+@test emean > esrw
 @test emean > efast
 @test emean > erand
 @test emean > etn
