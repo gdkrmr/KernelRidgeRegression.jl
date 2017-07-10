@@ -13,7 +13,7 @@ export KRR,
 import Base: show, showcompact, display
 import MLKernels
 import StatsBase
-import StatsBase: fit, fitted, predict, nobs, predict!, RegressionModel, sample
+import StatsBase: fit, fitted, predict, nobs, predict!, RegressionModel, sample, weights
 
 abstract AbstractKRR{T} <: RegressionModel
 

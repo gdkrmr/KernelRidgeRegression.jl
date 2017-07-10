@@ -515,6 +515,7 @@ function fit{T <: AbstractFloat}(
     Kmm = Kmn[:, m_idx]
 
     # naive way:
+    #   ( does not have full rank )
     α = ((Kmn * Kmn') + λ * Kmm) \ (Kmn * y)
 
     # The V method:
@@ -534,6 +535,28 @@ function fit{T <: AbstractFloat}(
     # @show size(Vmmit)
     # α = Vmmit * cholfact(λ * I + V' * V) \ (V' * y)
 
+    SubsetRegressorsKRR(λ, Xm, m, ϕ, α)
+end
+
+function fit{T <: AbstractFloat}(
+      :: Type{SubsetRegressorsKRR},
+    X :: Matrix{T},
+    y :: Vector{T},
+    λ :: T,
+    w :: Vector,
+    m :: Integer,
+    ϕ :: MLKernels.MercerKernel{T}
+)
+    d, n = size(X)
+    @assert n == length(w)
+    @assert m < n
+    m_idx = sample(1:n, weights(w), m, replace = false)
+    Xm = X[:, m_idx]
+    Kmn = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
+                                  Matrix{T}(m, n),
+                                  ϕ, Xm, X)
+    Kmm = Kmn[:, m_idx]
+    α = ((Kmn * Kmn') + λ * Kmm) \ (Kmn * y)
     SubsetRegressorsKRR(λ, Xm, m, ϕ, α)
 end
 
