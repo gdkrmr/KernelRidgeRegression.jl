@@ -515,6 +515,7 @@ function fit{T <: AbstractFloat}(
     Kmm = Kmn[:, m_idx]
 
     # naive way:
+    #   ( does not have full rank )
     α = ((Kmn * Kmn') + λ * Kmm) \ (Kmn * y)
 
     # The V method:
