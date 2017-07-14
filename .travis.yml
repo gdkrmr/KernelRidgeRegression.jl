@@ -19,7 +19,8 @@ matrix:
 
 script:
   - pip install --upgrade pip
-  - pip install gpy numpy climin cython
+  - pip install numpy climin cython
+  - pip install gpy 
   - julia -e 'Pkg.clone(pwd());' 
   - julia -e 'Pkg.test("KernelRidgeRegression", coverage = true)'
 
