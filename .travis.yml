@@ -19,12 +19,12 @@ matrix:
 
 install:
   - sudo apt-get install liblapack-dev
-  - sudo pip install --upgrade --user pip
-  - pip install --user scipy
-  - pip install --user numpy
-  - pip install --user climin
-  - pip install --user cython
-  - pip install --user gpy 
+  - sudo pip install --upgrade pip
+  - sudo pip install scipy
+  - sudo pip install numpy
+  - sudo pip install climin
+  - sudo pip install cython
+  - sudo pip install gpy 
 
 script:
   - export PYTHON=""
