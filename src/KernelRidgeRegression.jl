@@ -23,6 +23,8 @@ const climin          = PyNULL()
 const gpy             = PyNULL()
 
 function __init__()
+    @pyimport matplotlib
+    matplotlib.use("pdf")
     copy!(np,     pyimport_conda("numpy", "numpy"))
     copy!(climin, pyimport_conda("climin", "climin"))
     copy!(gpy,    pyimport_conda("GPy", "gpy"))
