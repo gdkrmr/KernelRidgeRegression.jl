@@ -18,6 +18,7 @@ matrix:
     - julia: 0.6
 
 script:
+  - pip install gpy
   - julia -e 'Pkg.clone(pwd());' 
   - julia -e 'Pkg.test("KernelRidgeRegression", coverage = true)'
 
