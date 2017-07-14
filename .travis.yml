@@ -18,8 +18,8 @@ matrix:
     - julia: 0.6
 
 install:
-  - apt-get install liblapack-dev
-  - pip install --upgrade --user pip
+  - sudo apt-get install liblapack-dev
+  - sudo pip install --upgrade --user pip
   - pip install --user scipy
   - pip install --user numpy
   - pip install --user climin
