@@ -19,6 +19,7 @@ matrix:
 
 script:
   - pip install --upgrade --user pip
+  - pip install --user scipy
   - pip install --user numpy
   - pip install --user climin
   - pip install --user cython
