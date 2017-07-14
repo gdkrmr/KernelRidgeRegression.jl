@@ -1,4 +1,7 @@
 
+ENV["PYTHON"] = "python"
+Pkg.build("PyCall")
+
 using KernelRidgeRegression
 using MLKernels
 using Base.Test
@@ -50,14 +53,19 @@ myrandkrr = fit(RandomFourierFeatures,
                 x, y, 1/500.0, 500, 1.0)
 yrandnew = predict(myrandkrr, xnew)
 
-emean = sqrt(mean((vec(sinc.(xnew)) - mean(xnew)) .^ 2))
-ekrr  = sqrt(mean((vec(sinc.(xnew)) - ynew)       .^ 2))
-enyst = sqrt(mean((vec(sinc.(xnew)) - ynystnew)   .^ 2))
-esr   = sqrt(mean((vec(sinc.(xnew)) - ysrnew)     .^ 2))
-esrw  = sqrt(mean((vec(sinc.(xnew)) - ysrwnew)    .^ 2))
-efast = sqrt(mean((vec(sinc.(xnew)) - yfastnew)   .^ 2))
-erand = sqrt(mean((vec(sinc.(xnew)) - yrandnew)   .^ 2))
-etn   = sqrt(mean((vec(sinc.(xnew)) - ytnnew)     .^ 2))
+myvi = fit(StochasticVariationalGP,
+           x, y, 50, 100, 500)
+yvinew = predict(myvi, xnew)
+
+emean = sqrt(mean((vec(sinc.(xnew)) - mean(vec(sinc.(xnew)))) .^ 2))
+ekrr  = sqrt(mean((vec(sinc.(xnew)) - ynew)                   .^ 2))
+enyst = sqrt(mean((vec(sinc.(xnew)) - ynystnew)               .^ 2))
+esr   = sqrt(mean((vec(sinc.(xnew)) - ysrnew)                 .^ 2))
+esrw  = sqrt(mean((vec(sinc.(xnew)) - ysrwnew)                .^ 2))
+efast = sqrt(mean((vec(sinc.(xnew)) - yfastnew)               .^ 2))
+erand = sqrt(mean((vec(sinc.(xnew)) - yrandnew)               .^ 2))
+etn   = sqrt(mean((vec(sinc.(xnew)) - ytnnew)                 .^ 2))
+evi   = sqrt(mean((vec(sinc.(xnew)) - yvinew)                 .^ 2))
 
 @test eltype(emean) == Float64
 @test eltype(ekrr ) == Float64
@@ -67,6 +75,7 @@ etn   = sqrt(mean((vec(sinc.(xnew)) - ytnnew)     .^ 2))
 @test eltype(efast) == Float64
 @test eltype(erand) == Float64
 @test eltype(etn  ) == Float64
+@test eltype(evi  ) == Float64
 
 @test emean > ekrr
 @test emean > enyst
@@ -75,6 +84,7 @@ etn   = sqrt(mean((vec(sinc.(xnew)) - ytnnew)     .^ 2))
 @test emean > efast
 @test emean > erand
 @test emean > etn
+@test emean > evi
 
 # from julia/test/show.jl:
 replstr(x) = sprint((io, y′) -> show(IOContext(io, :limit => true), MIME("text/plain"), y′), x)
