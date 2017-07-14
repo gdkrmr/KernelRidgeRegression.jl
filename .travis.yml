@@ -1,6 +1,6 @@
 language: julia
 
-sudo: false
+sudo: required
 
 os:
   - linux
