@@ -20,7 +20,7 @@ matrix:
     - julia: nightly
     - julia: 0.6
 
-install:
+before_install:
   - sudo apt-get install liblapack-dev
   - sudo pip install --upgrade pip
   - sudo pip install scipy
