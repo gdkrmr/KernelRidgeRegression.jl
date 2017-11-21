@@ -12,7 +12,7 @@ julia:
   # - nightly
 
 env:
-  - PYTHON=""
+  - PYTHON="python"
 
 matrix:
   fast_finish: true
@@ -31,7 +31,6 @@ before_install:
   - sudo pip install gpy 
 
 script:
-  - export PYTHON=""
   - julia -e 'Pkg.clone(pwd());' 
   - julia -e 'Pkg.test("KernelRidgeRegression", coverage = true)'
 
