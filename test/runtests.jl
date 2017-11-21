@@ -1,6 +1,6 @@
 
-ENV["PYTHON"] = "python"
-Pkg.build("PyCall")
+# ENV["PYTHON"] = "python"
+# Pkg.build("PyCall")
 
 using KernelRidgeRegression
 using MLKernels

@@ -1,3 +1,4 @@
+
 using BenchmarkTools
 using Gadfly
 using StatsBase
@@ -28,11 +29,7 @@ xnew = collect(-2.5π:0.01:2.5π)'
 
 reload("KernelRidgeRegression")
 
-using KernelRidgeRegression
-using StatsBase
-using MLKernels
-
-@time mykrr = fit(KRR, x, y, 1e-3/5000, GaussianKernel(1.0))
+@time mykrr = fit(KernelRidgeRegression.KRR, x, y, 1e-3/5000, GaussianKernel(1.0))
 @time ynew = predict(mykrr, xnew);
 
 show(mykrr)

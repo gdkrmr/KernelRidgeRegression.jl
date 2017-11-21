@@ -22,7 +22,7 @@ function fit(::Type{StochasticVariationalGP}, X, y, m, batchsize, n_steps)
         reshape(y, (n, 1)),         # GPy can have more than one output variable
         X[: , sample(1:n, m)]',
         gpy[:kern][:RBF](d) + gpy[:kern][:White](d),
-        gpy[:likelihoods][:Gaussian](),
+        gpy[:likelihoods][:Gaussian]();
         batchsize = batchsize
     )
 
