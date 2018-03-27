@@ -20,6 +20,7 @@ function fit(::Type{StochasticVariationalGP}, X, y, m, batchsize, n_steps)
     m = gpy[:core][:SVGP](
         X',                         # GPy uses observations in columns
         reshape(y, (n, 1)),         # GPy can have more than one output variable
+        # memory for the support vectors initialized with asubset of X
         X[: , sample(1:n, m)]',
         gpy[:kern][:RBF](d) + gpy[:kern][:White](d),
         gpy[:likelihoods][:Gaussian]();
@@ -51,6 +52,11 @@ function fit(::Type{StochasticVariationalGP}, X, y, m, batchsize, n_steps)
         # push!(err, rmse)
         # println("$i: err = $(err[end]); lc = $(lc[end]); va = $(va[end])")
         i += 1
+
+        if i % 100 == 0
+            @show i
+        end
+
         if i > n_steps
             break
         end
