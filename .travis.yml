@@ -23,7 +23,7 @@ before_install:
   - sudo pip install --upgrade pip
   - sudo pip install scipy
   - sudo pip install numpy
-  - sudo pip install matplotlib
+  - sudo pip install matplotlib --ignore-installed six
   - sudo pip install climin
   - sudo pip install cython
   - sudo pip install gpy 
