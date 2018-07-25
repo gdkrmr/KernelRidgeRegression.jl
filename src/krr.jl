@@ -9,35 +9,35 @@ Basic Kernel Ridge Regression.
 * `α`: The weights of the linear regression in kernel space, will be calculated by `fit`.
 * `ϕ`: A Kernel function
 """
-type KRR{T <: AbstractFloat} <: AbstractKRR{T}
+struct KRR{T <: AbstractFloat} <: AbstractKRR
     λ :: T
     X :: Matrix{T}
     α :: Vector{T}
     ϕ :: MLKernels.MercerKernel{T}
 
-    function KRR(λ, X, α, ϕ)
+    function KRR{T}(λ, X, α, ϕ) where T
         @assert λ > zero(λ)
         @assert size(X, 2) == length(α)
         new(λ, X, α, ϕ)
     end
 end
 
-function KRR{T <: AbstractFloat}(
+function KRR(
     λ :: T,
     X :: Matrix{T},
     α :: Vector{T},
     ϕ :: MLKernels.MercerKernel{T}
-)
+) where {T <: AbstractFloat}
     KRR{T}(λ, X, α, ϕ)
 end
 
-function fit{T <: AbstractFloat}(
+function fit(
       :: Type{KRR},
     X :: Matrix{T},
     y :: Vector{T},
     λ :: T,
     ϕ :: MLKernels.Kernel{T}
-)
+) where {T <: AbstractFloat}
     d, n = size(X)
     K = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
                                 Matrix{T}(n, n),
@@ -53,12 +53,12 @@ function fit{T <: AbstractFloat}(
     KRR(λ, X, α, ϕ)
 end
 
-function predict!{T <: AbstractFloat}(
+function predict!(
     KRR :: KRR{T},
     X   :: Matrix{T},
     y   :: Vector{T},
     K   :: Matrix{T}
-)
+) where {T <: AbstractFloat}
     n, n_new = (size(KRR.X, 2), size(X, 2))
     @assert (n_new, n) == size(K)
     @assert length(y) == n_new
@@ -71,7 +71,11 @@ function predict!{T <: AbstractFloat}(
     return y
 end
 
-function predict!{T <: AbstractFloat}(KRR::KRR{T}, X::Matrix{T}, y::Vector{T})
+function predict!(
+    KRR::KRR{T},
+    X::Matrix{T},
+    y::Vector{T}
+) where {T <: AbstractFloat}
     predict!(
         KRR, X, y, MLKernels.kernelmatrix!(
             MLKernels.ColumnMajor(),
@@ -80,18 +84,18 @@ function predict!{T <: AbstractFloat}(KRR::KRR{T}, X::Matrix{T}, y::Vector{T})
     ))
 end
 
-function predict{T <: AbstractFloat}(KRR::KRR{T}, X::Matrix{T})
+function predict(KRR::KRR{T}, X::Matrix{T}) where {T <: AbstractFloat}
     predict!(KRR, X, Vector{T}(size(X, 2)))
 end
 
 # predict the KRR with the data in X and add the result to y, used to speedup
 # predict(fast_krr::FastKRR)
-function predict_and_add!{T <: AbstractFloat}(
+function predict_and_add!(
     KRR :: KRR{T},
     X   :: Matrix{T},
     y   :: Vector{T},
     K   :: Matrix{T}
-)
+) where {T <: AbstractFloat}
     n, n_new = (size(KRR.X, 2), size(X, 2))
     @assert (n_new, n) == size(K)
     @assert length(y) == n_new
@@ -127,14 +131,14 @@ Divides the problem in `m` splits and calculates a separate Kernel Ridge Regress
        will be calculated by `fit`.
 * `ϕ`: A Kernel function (not a vector of kernel functions!).
 """
-type FastKRR{T <: AbstractFloat} <: AbstractKRR{T}
+struct FastKRR{T <: AbstractFloat} <: AbstractKRR
     λ :: T
     m :: Int
     X :: Vector{Matrix{T}}
     α :: Vector{Vector{T}}
     ϕ :: MLKernels.MercerKernel{T}
 
-    function FastKRR(λ, m, X, α, ϕ)
+    function FastKRR{T}(λ, m, X, α, ϕ) where T
         @assert λ > zero(λ)
         @assert m > zero(m)
         @assert length(X) == length(α)
@@ -192,14 +196,14 @@ end
 # ==(x::MLKernels.GaussianKernel, y::MLKernels.GaussianKernel) =
 #     x.alpha == y.alpha
 
-function fit{T <: AbstractFloat}(
+function fit(
       :: Type{FastKRR},
     X :: Matrix{T},
     y :: Vector{T},
     λ :: T,
     m :: Int,
     ϕ :: MLKernels.Kernel{T}
-)
+) where {T <: AbstractFloat}
     d, n = size(X)
     # Those are the limits for polynomial kernels,
     # the gaussian kernel needs a little bit less blocks
@@ -239,7 +243,7 @@ Fit a FastKRR in parallel
 * `m`:     The number of splits for the data.
 * `ϕ`:     A Kernel function
 """
-function fitPar{T <: AbstractFloat}(
+function fitPar(
           :: Type{FastKRR},
     n     :: Int,
     get_X :: Function,
@@ -247,7 +251,7 @@ function fitPar{T <: AbstractFloat}(
     λ     :: T,
     m     :: Int,
     ϕ     :: MLKernels.Kernel{T}
-)
+) where {T <: AbstractFloat}
     # Those are the limits for polynomial kernels,
     # the gaussian kernel needs a little bit less blocks
     m > n^0.33 && warn("m > n^1/3 = $(n^(1/3)), above theoretical limit")
@@ -273,7 +277,7 @@ end
 
 fitted(obj::FastKRR) = error("fitted is not defined for $(typeof(obj))")
 
-function predict{T <: AbstractFloat}(fast_krr::FastKRR{T}, X::Matrix{T})
+function predict(fast_krr::FastKRR{T}, X::Matrix{T}) where {T <: AbstractFloat}
     @assert fast_krr.m > 0
     d, n = size(X)
     y = zeros(T, n)
@@ -322,7 +326,7 @@ Details see Rahimi and Recht (2008)
        will be calculated by `fit`.
 * `ϕ`: Kernel approximation function function.
 """
-type RandomFourierFeatures{T <: AbstractFloat, S <: Number} <: AbstractKRR{T}
+struct RandomFourierFeatures{T <: AbstractFloat, S <: Number} <: AbstractKRR
     λ :: T
     K :: Int
     σ :: T
@@ -330,7 +334,7 @@ type RandomFourierFeatures{T <: AbstractFloat, S <: Number} <: AbstractKRR{T}
     α :: Vector{S}
     ϕ :: Function
 
-    function RandomFourierFeatures(λ, K, σ, W, α, ϕ)
+    function RandomFourierFeatures{T, S}(λ, K, σ, W, α, ϕ) where {T, S}
         @assert λ >= zero(T)
         @assert K > zero(Int)
         @assert size(W, 2) == K
@@ -350,15 +354,15 @@ function RandomFourierFeatures{T <: AbstractFloat, S <: Number}(
     RandomFourierFeatures{T, S}(λ, K, σ, W, α, ϕ)
 end
 
-function fit{T<:AbstractFloat}(
+function fit(
       :: Type{RandomFourierFeatures},
     X :: Matrix{T},
     y :: Vector{T},
     λ :: T,
     K :: Int,
     σ :: T,
-    ϕ :: Function = (X, W) -> exp(X' * W * 1im)
-)
+    ϕ :: Function = (X, W) -> exp.(X' * W * 1im)
+) where {T<:AbstractFloat}
     d, n = size(X)
     W = randn(d, K) / σ
     Z = ϕ(X, W) / sqrt(K) # Kxd matrix, the normalization can probably be dropped
@@ -370,7 +374,7 @@ function fit{T<:AbstractFloat}(
     RandomFourierFeatures(λ, K, σ, W, α, ϕ)
 end
 
-function predict{T <: AbstractFloat}(RFF::RandomFourierFeatures, X::Matrix{T})
+function predict(RFF::RandomFourierFeatures, X::Matrix{T}) where {T <: AbstractFloat}
     Z = RFF.ϕ(X, RFF.W) / sqrt(RFF.K)
     real(Z * RFF.α)
 end
@@ -399,7 +403,7 @@ Approximates the Kernel Ridge Regression by an early stopped optimization
 * `ɛ`: Error stopping criterion
 * `max_iter`: Maximum number of iterations.
 """
-type TruncatedNewtonKRR{T <: AbstractFloat} <: AbstractKRR{T}
+struct TruncatedNewtonKRR{T <: AbstractFloat} <: AbstractKRR
     λ        :: T
     X        :: Matrix{T}
     α        :: Vector{T}
@@ -407,7 +411,7 @@ type TruncatedNewtonKRR{T <: AbstractFloat} <: AbstractKRR{T}
     ɛ        :: T
     max_iter :: Int
 
-    function TruncatedNewtonKRR(λ, X, α, ϕ, ɛ, max_iter)
+    function TruncatedNewtonKRR{T}(λ, X, α, ϕ, ɛ, max_iter) where T
         @assert size(X, 2) == length(α)
         @assert λ > zero(T)
         @assert ɛ > zero(T)
@@ -427,10 +431,10 @@ function TruncatedNewtonKRR{T}(
     TruncatedNewtonKRR{T}(λ, X, α, ϕ, ɛ, max_iter)
 end
 
-function fit{T <: AbstractFloat}(
+function fit(
     ::Type{TruncatedNewtonKRR}, X::Matrix{T}, y::Vector{T},
     λ::T, ϕ::MLKernels.Kernel{T}, ɛ::T = 0.5, max_iter::Int = 200
-)
+) where {T <: AbstractFloat}
     d, n = size(X)
     K = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
                                 Matrix{T}(n, n),
@@ -446,7 +450,7 @@ function fit{T <: AbstractFloat}(
     TruncatedNewtonKRR(λ, X, α, ϕ, ɛ, max_iter)
 end
 
-function predict{T<:AbstractFloat}(KRR::TruncatedNewtonKRR{T}, X::Matrix{T})
+function predict(KRR::TruncatedNewtonKRR{T}, X::Matrix{T}) where {T<:AbstractFloat}
     k = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
                                 Matrix{T}(size(X, 2), size(KRR.X, 2)),
                                 KRR.ϕ, X, KRR.X)
@@ -472,14 +476,14 @@ Subset of Regressors, (almost) equivalent to the Nyström approximation.
 * `ϕ`: A Kernel function
 * `α`:  The weights of the linear regression in kernel space, will be calculated by `fit`.
 """
-type SubsetRegressorsKRR{T <: AbstractFloat} <: AbstractKRR{T}
+struct SubsetRegressorsKRR{T <: AbstractFloat} <: AbstractKRR
     λ  :: T
     Xm :: Matrix{T}
     m  :: Integer
     ϕ  :: MLKernels.MercerKernel{T}
     α  :: Vector{T}
 
-    function SubsetRegressorsKRR(λ, Xm, m, ϕ, α)
+    function SubsetRegressorsKRR{T}(λ, Xm, m, ϕ, α) where T
         @assert m == size(Xm, 2)
         @assert λ >= zero(λ)
         @assert length(α) == m
@@ -497,14 +501,14 @@ function SubsetRegressorsKRR{T <: AbstractFloat}(
     SubsetRegressorsKRR{T}(λ, Xm, m, ϕ, α)
 end
 
-function fit{T <: AbstractFloat}(
+function fit(
       :: Type{SubsetRegressorsKRR},
     X :: Matrix{T},
     y :: Vector{T},
     λ :: T,
     m :: Integer,
     ϕ :: MLKernels.MercerKernel{T}
-)
+) where {T <: AbstractFloat}
     d, n = size(X)
     @assert m < n
     m_idx = sample(1:n, m, replace = false)
@@ -535,10 +539,10 @@ function fit{T <: AbstractFloat}(
     # @show size(Vmmit)
     # α = Vmmit * cholfact(λ * I + V' * V) \ (V' * y)
 
-    SubsetRegressorsKRR(λ, Xm, m, ϕ, α)
+    SubsetRegressorsKRR{T}(λ, Xm, m, ϕ, α)
 end
 
-function fit{T <: AbstractFloat}(
+function fit(
       :: Type{SubsetRegressorsKRR},
     X :: Matrix{T},
     y :: Vector{T},
@@ -546,7 +550,7 @@ function fit{T <: AbstractFloat}(
     w :: Vector,
     m :: Integer,
     ϕ :: MLKernels.MercerKernel{T}
-)
+) where {T <: AbstractFloat}
     d, n = size(X)
     @assert n == length(w)
     @assert m < n
@@ -560,7 +564,10 @@ function fit{T <: AbstractFloat}(
     SubsetRegressorsKRR(λ, Xm, m, ϕ, α)
 end
 
-function predict{T <: AbstractFloat}(KRR :: SubsetRegressorsKRR{T}, X :: Matrix{T})
+function predict(
+    KRR :: SubsetRegressorsKRR{T},
+    X :: Matrix{T}
+) where {T <: AbstractFloat}
     Knm = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
                                   Matrix{T}(size(X, 2), size(KRR.Xm, 2)),
                                   KRR.ϕ, X, KRR.Xm)
@@ -588,14 +595,14 @@ Nystrom Approximation of a Kernel Ridge Regression
 * `ϕ`: A Kernel function
 * `α`: The weights of the linear regression in kernel space, will be calculated by `fit`.
 """
-type NystromKRR{T <: AbstractFloat} <: AbstractKRR{T}
+struct NystromKRR{T <: AbstractFloat} <: AbstractKRR
     λ :: T
     X :: Matrix{T}
     m :: Integer
     ϕ :: MLKernels.MercerKernel{T}
     α :: Vector{T}
 
-    function NystromKRR(λ, X, m, ϕ, α)
+    function NystromKRR{T}(λ, X, m, ϕ, α) where T
         @assert m > zero(m)
         @assert λ >= zero(λ)
         @assert length(α) == size(X, 2)
@@ -603,24 +610,24 @@ type NystromKRR{T <: AbstractFloat} <: AbstractKRR{T}
     end
 end
 
-function NystromKRR{T <: AbstractFloat}(
+function NystromKRR(
     λ  :: T,
     Xm :: Matrix{T},
     m  :: Integer,
     ϕ  :: MLKernels.MercerKernel{T},
     α  :: Vector{T}
-)
+) where {T <: AbstractFloat}
     NystromKRR{T}(λ, Xm, m, ϕ, α)
 end
 
-function fit{T <: AbstractFloat}(
+function fit(
       :: Type{NystromKRR},
     X :: Matrix{T},
     y :: Vector{T},
     λ :: T,
     m :: Integer,
     ϕ :: MLKernels.MercerKernel{T}
-)
+) where {T <: AbstractFloat}
     d, n = size(X)
     @assert m < n
     m_idx = sample(1:n, m, replace = false)
@@ -659,7 +666,7 @@ function fit{T <: AbstractFloat}(
     NystromKRR(λ, X, m, ϕ, α)
 end
 
-function predict{T <: AbstractFloat}(KRR :: NystromKRR{T}, X :: Matrix{T})
+function predict(KRR :: NystromKRR{T}, X :: Matrix{T}) where {T <: AbstractFloat}
     Knm = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
                                   Matrix{T}(size(X, 2), size(KRR.X, 2)),
                                   KRR.ϕ, X, KRR.X)
@@ -678,7 +685,7 @@ function show(io::IO, x::NystromKRR)
 end
 
 # An implementation error which nonetheless works
-type SomethingKRR{T <: AbstractFloat} <: AbstractKRR{T}
+struct SomethingKRR{T <: AbstractFloat} <: AbstractKRR
     λ    :: T
     X    :: Matrix{T}  # The data d × n
     r    :: Integer    # the rank, <= m
@@ -688,7 +695,7 @@ type SomethingKRR{T <: AbstractFloat} <: AbstractKRR{T}
     Σinv :: Vector{T}  # Standard deviations length r
     Vt   ::  Matrix{T} # Eigenvectors
 
-    function SomethingKRR(λ, X, r, m, ϕ, α, Σinv, Vt)
+    function SomethingKRR{T}(λ, X, r, m, ϕ, α, Σinv, Vt) where T
         d, n = size(X)
         @assert 0 <  r
         @assert r <= m
@@ -715,7 +722,7 @@ function SomethingKRR{T}(
     SomethingKRR{T}(λ, X, r, m, ϕ, α, Σinv, Vt)
 end
 
-function fit{T <: AbstractFloat}(
+function fit(
       :: Type{SomethingKRR},
     X :: Matrix{T},
     y :: Vector{T},
@@ -723,7 +730,7 @@ function fit{T <: AbstractFloat}(
     m :: Integer,
     r :: Integer,
     ϕ :: MLKernels.Kernel{T}
-)
+) where {T <: AbstractFloat}
     d, n = size(X)
     @assert 0 < r
     @assert r <= m
@@ -748,7 +755,7 @@ function fit{T <: AbstractFloat}(
     return SomethingKRR(λ, X, r, m, ϕ, α, Σinv, Vt)
 end
 
-function predict{T <: AbstractFloat}(KRR :: SomethingKRR{T}, Xnew :: Matrix{T})
+function predict(KRR :: SomethingKRR{T}, Xnew :: Matrix{T}) where {T <: AbstractFloat}
     d, n = size(Xnew)
     Kbnew = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
                                     Matrix{T}(size(KRR.X, 2), n),

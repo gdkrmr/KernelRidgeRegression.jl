@@ -1,0 +1,8 @@
+authors = ["gdkrmr <gdkrmr@users.noreply.github.com>"]
+name = "KernelRidgeRegression"
+uuid = "d45d9c5c-8fe7-11e8-1695-31cbf2acba59"
+version = "0.1.0"
+
+[deps]
+MLKernels
+StatsBase

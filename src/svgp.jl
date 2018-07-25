@@ -6,7 +6,7 @@ Gaussian Processes for big data.
 
 currently uses GPy
 """
-type StochasticVariationalGP <: AbstractKRR
+struct StochasticVariationalGP <: AbstractKRR
     o :: PyObject
     p :: PyObject
 end

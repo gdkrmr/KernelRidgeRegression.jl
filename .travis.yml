@@ -7,9 +7,8 @@ os:
   # - osx
 
 julia:
-  - 0.5
-  # - 0.6
-  # - nightly
+  - 0.6
+  - nightly
 
 env:
   - PYTHON="python"
@@ -18,7 +17,6 @@ matrix:
   fast_finish: true
   allow_failures:
     - julia: nightly
-    - julia: 0.6
 
 before_install:
   - sudo apt-get install liblapack-dev

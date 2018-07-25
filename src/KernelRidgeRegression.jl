@@ -32,7 +32,7 @@ end
 export StochasticVariationalGP
 # for svgp end
 
-abstract AbstractKRR{T} <: RegressionModel
+abstract type AbstractKRR <: RegressionModel end
 
 function fit(::Type{AbstractKRR}) error("not implemented") end
 
