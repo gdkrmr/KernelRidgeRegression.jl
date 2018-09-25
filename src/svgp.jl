@@ -18,7 +18,7 @@ function fit(::Type{StochasticVariationalGP}, X, y, m, batchsize, n_steps)
     @assert length(y) == n
 
     m = gpy[:core][:SVGP](
-        X',                         # GPy uses observations in columns
+        permutedims(X),             # GPy uses observations in columns
         reshape(y, (n, 1)),         # GPy can have more than one output variable
         # memory for the support vectors initialized with asubset of X
         X[: , sample(1:n, m)]',

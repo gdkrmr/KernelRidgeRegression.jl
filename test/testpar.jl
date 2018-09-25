@@ -6,7 +6,7 @@ using Gadfly
 N = 5000
 x = rand(1, N) * 4π - 2π
 yy = sinc.(x) # vec(sinc.(4 .* x) .+ 0.2 .* sin.(30 .* x))
-y = squeeze(yy + 0.1randn(1, N), 1)
+y = dropdims(yy .+ 0.1 .* randn(1, N), dims = 1)
 xnew = collect(-2.5π:0.01:2.5π)'
 
 sendto(workers(), x = x, y = y)

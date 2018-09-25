@@ -1,8 +1,14 @@
-authors = ["gdkrmr <gdkrmr@users.noreply.github.com>"]
 name = "KernelRidgeRegression"
-uuid = "d45d9c5c-8fe7-11e8-1695-31cbf2acba59"
-version = "0.1.0"
+uuid = "12e2faae-c0a5-11e8-198e-9368fe0b228d"
+authors = ["gdkrmr <gdkrmr@users.noreply.github.com>"]
+version = "0.2.0"
 
 [deps]
-MLKernels
-StatsBase
+Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+MLKernels = "48eadcf2-8ff1-11e8-289d-f103432a0bb3"
+PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

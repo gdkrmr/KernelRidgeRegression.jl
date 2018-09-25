@@ -40,7 +40,7 @@ function fit(
 ) where {T <: AbstractFloat}
     d, n = size(X)
     K = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
-                                Matrix{T}(n, n),
+                                Matrix{T}(undef, n, n),
                                 ϕ, X, true)
     for i = 1:n
         # the n is important to make things comparable between fast and normal
@@ -48,7 +48,7 @@ function fit(
         @inbounds K[i, i] += n * λ
     end
 
-    α = cholfact!(K) \ y
+    α = LinearAlgebra.cholesky!(Symmetric(K)) \ y
 
     KRR(λ, X, α, ϕ)
 end
@@ -67,7 +67,7 @@ function predict!(
         MLKernels.ColumnMajor(),
         K, KRR.ϕ, X, KRR.X
     )
-    LinAlg.BLAS.gemv!('N', one(T), K, KRR.α, zero(T), y)
+    LinearAlgebra.BLAS.gemv!('N', one(T), K, KRR.α, zero(T), y)
     return y
 end
 
@@ -79,13 +79,13 @@ function predict!(
     predict!(
         KRR, X, y, MLKernels.kernelmatrix!(
             MLKernels.ColumnMajor(),
-            Matrix{T}(size(X, 2), size(KRR.X, 2)),
+            Matrix{T}(undef, size(X, 2), size(KRR.X, 2)),
             KRR.ϕ, X, KRR.X
     ))
 end
 
 function predict(KRR::KRR{T}, X::Matrix{T}) where {T <: AbstractFloat}
-    predict!(KRR, X, Vector{T}(size(X, 2)))
+    predict!(KRR, X, Vector{T}(undef, size(X, 2)))
 end
 
 # predict the KRR with the data in X and add the result to y, used to speedup
@@ -104,7 +104,7 @@ function predict_and_add!(
         MLKernels.ColumnMajor(),
         K, KRR.ϕ, X, KRR.X
     )
-    LinAlg.BLAS.gemv!('N', one(T), K, KRR.α, one(T), y)
+    LinearAlgebra.BLAS.gemv!('N', one(T), K, KRR.α, one(T), y)
     return y
 end
 
@@ -157,17 +157,17 @@ struct FastKRR{T <: AbstractFloat} <: AbstractKRR
     end
 end
 
-function FastKRR{T <: AbstractFloat}(
+function FastKRR(
     λ :: T,
     m :: Int,
     X :: Vector{Matrix{T}},
     α :: Vector{Vector{T}},
     ϕ :: MLKernels.MercerKernel{T}
-)
+) where {T <: AbstractFloat}
     FastKRR{T}(λ, m, X, α, ϕ)
 end
 
-function FastKRR{T <: AbstractFloat}(krrs :: Union{Vector{KRR{T}}, Tuple{KRR{T}}})
+function FastKRR(krrs :: Union{Vector{KRR{T}}, Tuple{KRR{T}}}) where {T <: AbstractFloat}
     m = length(krrs)
 
     λ = krrs[1].λ
@@ -210,8 +210,8 @@ function fit(
     m > n^0.33 && warn("m > n^1/3 = $(n^(1/3)), above theoretical limit")
     m > n^0.45 && warn("m > n^0.45 = $(n^0.45), above empirical limit")
 
-    XX = Vector{Matrix{T}}(m)
-    aa = Vector{Vector{T}}(m)
+    XX = Vector{Matrix{T}}(undef, m)
+    aa = Vector{Vector{T}}(undef, m)
 
     perm_idxs  = shuffle(1:n)
     blocksizes = make_blocks(n, m)
@@ -259,7 +259,7 @@ function fitPar(
 
     perm_idxs  = shuffle(1:n)
     blocksizes = make_blocks(n, m)
-    b_starts = [1; cumsum(blocksizes)[1:end-1]+1]
+    b_starts = [1; cumsum(blocksizes)[1:end-1] .+ 1]
     b_ends   = cumsum(blocksizes)
 
     krrs = pmap((i) -> fit(
@@ -281,12 +281,12 @@ function predict(fast_krr::FastKRR{T}, X::Matrix{T}) where {T <: AbstractFloat}
     @assert fast_krr.m > 0
     d, n = size(X)
     y = zeros(T, n)
-    K = Matrix{T}(n, size(fast_krr.X[1], 2))
+    K = Matrix{T}(undef, n, size(fast_krr.X[1], 2))
     for i in 1:fast_krr.m
 
         # The KRR.X[i] may be of different lengths
         if size(K, 2) != size(fast_krr.X[i], 2)
-            K = Matrix{T}(n, size(fast_krr.X[i], 2))
+            K = Matrix{T}(undef, n, size(fast_krr.X[i], 2))
         end
 
         predict_and_add!(
@@ -343,14 +343,14 @@ struct RandomFourierFeatures{T <: AbstractFloat, S <: Number} <: AbstractKRR
     end
 end
 
-function RandomFourierFeatures{T <: AbstractFloat, S <: Number}(
+function RandomFourierFeatures(
     λ :: T,
     K :: Int,
     σ :: T,
     W :: Matrix{T},
     α :: Vector{S},
     ϕ :: Function
-)
+) where {T <: AbstractFloat, S <: Number}
     RandomFourierFeatures{T, S}(λ, K, σ, W, α, ϕ)
 end
 
@@ -370,7 +370,8 @@ function fit(
     for i in 1:K
         @inbounds Z2[i, i] += λ * K
     end
-    α = cholfact(Z2) \ (Z' * y)
+
+    α = LinearAlgebra.cholesky!(Hermitian(Z2)) \ (Z' * y)
     RandomFourierFeatures(λ, K, σ, W, α, ϕ)
 end
 
@@ -388,7 +389,6 @@ function show(io::IO, x::RandomFourierFeatures)
     println(io, ":\n    λ = ", x.λ)
     println(io,   ":    σ = ", x.σ)
     println(io,   ":    K = ", x.K)
-    print(io,      "    ϕ = "); show(io, x.ϕ)
 end
 
 """
@@ -420,24 +420,28 @@ struct TruncatedNewtonKRR{T <: AbstractFloat} <: AbstractKRR
     end
 end
 
-function TruncatedNewtonKRR{T}(
+function TruncatedNewtonKRR(
     λ        :: T,
     X        :: Matrix{T},
     α        :: Vector{T},
     ϕ        :: MLKernels.MercerKernel{T},
     ɛ        :: T,
     max_iter :: Int
-)
+) where T
     TruncatedNewtonKRR{T}(λ, X, α, ϕ, ɛ, max_iter)
 end
 
 function fit(
-    ::Type{TruncatedNewtonKRR}, X::Matrix{T}, y::Vector{T},
-    λ::T, ϕ::MLKernels.Kernel{T}, ɛ::T = 0.5, max_iter::Int = 200
+      :: Type{TruncatedNewtonKRR},
+    X :: Matrix{T},
+    y :: Vector{T},
+    λ :: T, ϕ::MLKernels.Kernel{T},
+    ɛ :: T = 0.5,
+    max_iter::Int = 200
 ) where {T <: AbstractFloat}
     d, n = size(X)
     K = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
-                                Matrix{T}(n, n),
+                                Matrix{T}(undef, n, n),
                                 ϕ, X, true)
     for i = 1:n
         # the n is important to make things comparable between fast and normal
@@ -445,14 +449,14 @@ function fit(
         @inbounds K[i, i] += n * λ
     end
 
-    α = truncated_newton!(K, y, zeros(y), ɛ, max_iter)
+    α = truncated_newton!(K, y, fill!(similar(y), 0), ɛ, max_iter)
 
     TruncatedNewtonKRR(λ, X, α, ϕ, ɛ, max_iter)
 end
 
 function predict(KRR::TruncatedNewtonKRR{T}, X::Matrix{T}) where {T<:AbstractFloat}
     k = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
-                                Matrix{T}(size(X, 2), size(KRR.X, 2)),
+                                Matrix{T}(undef, size(X, 2), size(KRR.X, 2)),
                                 KRR.ϕ, X, KRR.X)
     k * KRR.α
 end
@@ -491,13 +495,13 @@ struct SubsetRegressorsKRR{T <: AbstractFloat} <: AbstractKRR
     end
 end
 
-function SubsetRegressorsKRR{T <: AbstractFloat}(
+function SubsetRegressorsKRR(
     λ  :: T,
     Xm :: Matrix{T},
     m  :: Integer,
     ϕ  :: MLKernels.MercerKernel{T},
     α  :: Vector{T}
-)
+) where {T <: AbstractFloat}
     SubsetRegressorsKRR{T}(λ, Xm, m, ϕ, α)
 end
 
@@ -514,7 +518,7 @@ function fit(
     m_idx = sample(1:n, m, replace = false)
     Xm = X[:, m_idx]
     Kmn = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
-                                  Matrix{T}(m, n),
+                                  Matrix{T}(undef, m, n),
                                   ϕ, Xm, X)
     Kmm = Kmn[:, m_idx]
 
@@ -557,7 +561,7 @@ function fit(
     m_idx = sample(1:n, weights(w), m, replace = false)
     Xm = X[:, m_idx]
     Kmn = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
-                                  Matrix{T}(m, n),
+                                  Matrix{T}(undef, m, n),
                                   ϕ, Xm, X)
     Kmm = Kmn[:, m_idx]
     α = ((Kmn * Kmn') + λ * Kmm) \ (Kmn * y)
@@ -569,7 +573,7 @@ function predict(
     X :: Matrix{T}
 ) where {T <: AbstractFloat}
     Knm = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
-                                  Matrix{T}(size(X, 2), size(KRR.Xm, 2)),
+                                  Matrix{T}(undef, size(X, 2), size(KRR.Xm, 2)),
                                   KRR.ϕ, X, KRR.Xm)
     Knm * KRR.α
 end
@@ -633,7 +637,7 @@ function fit(
     m_idx = sample(1:n, m, replace = false)
     Xm = X[:, m_idx]
     Kmn = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
-                                  Matrix{T}(m, n),
+                                  Matrix{T}(undef, m, n),
                                   ϕ, Xm, X)
 
     Kmm = Kmn[:, m_idx]
@@ -648,12 +652,12 @@ function fit(
     # with
     # Uapprox = √m/n Λ⁻¹ Kₙₘ Uₘₘ
     # Λapprox = n/m Λₘₘ
-    Kmm_e = eigfact(Symmetric(Kmm))
+    Kmm_e = eigen(Symmetric(Kmm))
 
     # Keep only positive eigenvalues
-    Kmme_ind = find(Kmm_e[:values] .> 1e-1)
-    Λm = Kmm_e[:values][Kmme_ind]
-    Um = Kmm_e[:vectors][:, Kmme_ind]
+    Kmme_ind = findall(x -> x > 1e-1, Kmm_e.values)
+    Λm = Kmm_e.values[Kmme_ind]
+    Um = Kmm_e.vectors[:, Kmme_ind]
     # There is no need to sort the eigenvalues/vectors
 
     # Uapprox and Λapprox
@@ -668,7 +672,7 @@ end
 
 function predict(KRR :: NystromKRR{T}, X :: Matrix{T}) where {T <: AbstractFloat}
     Knm = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
-                                  Matrix{T}(size(X, 2), size(KRR.X, 2)),
+                                  Matrix{T}(undef, size(X, 2), size(KRR.X, 2)),
                                   KRR.ϕ, X, KRR.X)
     Knm * KRR.α
 end
@@ -709,7 +713,7 @@ struct SomethingKRR{T <: AbstractFloat} <: AbstractKRR
     end
 end
 
-function SomethingKRR{T}(
+function SomethingKRR(
     λ    :: T,
     X    :: Matrix{T},
     r    :: Integer,
@@ -718,7 +722,7 @@ function SomethingKRR{T}(
     α    :: Vector{T},
     Σinv :: Vector{T},
     Vt   :: Matrix{T}
-)
+) where {T}
     SomethingKRR{T}(λ, X, r, m, ϕ, α, Σinv, Vt)
 end
 
@@ -740,7 +744,7 @@ function fit(
     sᵢ = sample(1:n, m, replace = false)
     Xₛ = X[:, sᵢ]
     Kb = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
-                                 Matrix{T}(m, n),
+                                 Matrix{T}(undef, m, n),
                                  ϕ, Xₛ, X)
     K = Kb[:, sᵢ]
     # @assert issymmetric(K)
@@ -758,7 +762,7 @@ end
 function predict(KRR :: SomethingKRR{T}, Xnew :: Matrix{T}) where {T <: AbstractFloat}
     d, n = size(Xnew)
     Kbnew = MLKernels.kernelmatrix!(MLKernels.ColumnMajor(),
-                                    Matrix{T}(size(KRR.X, 2), n),
+                                    Matrix{T}(undef, size(KRR.X, 2), n),
                                     KRR.ϕ, KRR.X, Xnew)
     KRR.alpha' * KRR.Σinv * KRR.Vt * Kbnew
 end

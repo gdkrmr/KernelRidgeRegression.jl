@@ -1,4 +1,3 @@
-
 __precompile__()
 module KernelRidgeRegression
 
@@ -15,21 +14,24 @@ import MLKernels
 import StatsBase
 import StatsBase: fit, fitted, predict, nobs, predict!, RegressionModel, sample, weights
 
+using LinearAlgebra
+using Distributed
+using Random
 
 # for svgp:
-import PyCall: @pyimport, pyimport_conda, PyNULL, PyObject
-const np              = PyNULL()
-const climin          = PyNULL()
-const gpy             = PyNULL()
+# import PyCall: @pyimport, pyimport_conda, PyNULL, PyObject
+# const np     = PyNULL()
+# const climin = PyNULL()
+# const gpy    = PyNULL()
 
-function __init__()
-    @pyimport matplotlib
-    matplotlib.use("svg")
-    copy!(np,     pyimport_conda("numpy", "numpy"))
-    copy!(climin, pyimport_conda("climin", "climin"))
-    copy!(gpy,    pyimport_conda("GPy", "gpy"))
-end
-export StochasticVariationalGP
+# function __init__()
+#     @pyimport matplotlib
+#     matplotlib.use("svg")
+#     copy!(np,     pyimport_conda("numpy", "numpy"))
+#     copy!(climin, pyimport_conda("climin", "climin"))
+#     copy!(gpy,    pyimport_conda("GPy", "gpy"))
+# end
+# export StochasticVariationalGP
 # for svgp end
 
 abstract type AbstractKRR <: RegressionModel end
@@ -40,6 +42,6 @@ StatsBase.fitted(KRR::AbstractKRR) = predict(KRR, KRR.X)
 
 include("util.jl")
 include("krr.jl")
-include("svgp.jl")
+# include("svgp.jl")
 
 end # module KernelRidgeRegression
